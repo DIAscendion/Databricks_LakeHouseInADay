@@ -1,0 +1,327 @@
+# Analytical Reporting Requirements
+## TMS Shipment Table — Oracle TMS to MATM Migration
+
+---
+
+## 1. Shipment Summary Report
+
+### Objective
+Provide an end-to-end view of all shipments including origin, destination, carrier assignment, status, and key identifiers to support daily operations monitoring and carrier performance review.
+
+### Uses of the Report
+- Monitor active and completed shipments across all lanes and modes of transport.
+- Track carrier assignments (primary, secondary, broker) and their associated details.
+- Identify cancelled or reconciled shipments for corrective action and audit.
+- Support billing reconciliation and operational oversight workflows.
+
+### Data Attributes in the Report
+- Shipment identifiers and reference numbers.
+- Shipment status, type, and leg type.
+- Origin facility name, address, city, state, postal code, and country.
+- Destination facility name, address, city, state, postal code, and country.
+- Assigned primary carrier, mode of transport.
+- Assigned secondary carrier and broker carrier.
+- Bill of lading number, company identifier, trailer number.
+- Shipment creation date, creation source, and creator role.
+- Cancelled and reconciled flags.
+
+### KPIs and Metrics in the Report
+- Total Shipment Count (by status, type, and mode).
+- Cancelled Shipment % = Cancelled Shipments / Total Shipments × 100.
+- Reconciled Shipment % = Reconciled Shipments / Total Shipments × 100.
+- Shipments per Carrier (assigned carrier breakdown).
+- Shipments by Origin and Destination Facility.
+
+### Interactivity in the Report
+- **Drill Down:** Network → Region → Facility → Shipment.
+- **Drill Through:** Shipment row to detailed stop and carrier information.
+- **Slicers:** Shipment Status, Shipment Type, Mode of Transport, Carrier, Date Range, Origin/Destination Facility.
+
+### Calculations in the Report
+- Cancelled Shipment % = Count of cancelled shipments / Total shipments × 100.
+- Reconciled % = Count of reconciled shipments / Total shipments × 100.
+- Shipment Age (Days) = Current date minus shipment creation date.
+
+### Data Constraints
+- Shipment identifier must be unique per row at the base grain.
+- Shipment status must be a valid predefined domain value.
+- Cancelled shipment identification is based on a specific planning status value in the source system.
+- Origin and destination facility data must be derived using stop sequence logic (first stop = origin, last stop = destination).
+
+### Validations
+- Validate that cancelled shipment count does not exceed total shipment count.
+- Confirm the mapping between the two shipment identifier fields using a real data example.
+- Ensure facility address joins use the correct stop sequence logic.
+
+### Security Access for the Report
+- Carrier and shipment data visible to logistics managers and above.
+- Facility-level drill-down restricted to regional operations leads.
+- Corporate supply chain leadership can view the full network.
+
+### Indicative Layout of the Report
+**Top:** KPI cards — Total Shipments, Active, Cancelled, Reconciled.
+**Middle:** Status breakdown bar chart + Mode of Transport pie chart.
+**Bottom:** Detailed shipment table with filter panel.
+
+---
+
+## 2. Carrier Performance & Assignment Report
+
+### Objective
+Track carrier assignments, tendering outcomes, and on-time pickup performance to support carrier scorecarding and network optimization.
+
+### Uses of the Report
+- Evaluate assigned, secondary, and broker carrier performance across lanes.
+- Monitor designated carrier usage for DC-to-Store static and master lane routes.
+- Compare feasible versus assigned carriers to identify routing optimization opportunities.
+- Support carrier contract reviews and rate benchmarking.
+
+### Data Attributes in the Report
+- Shipment identifier, status, and type.
+- Assigned primary carrier and mode of transport.
+- Assigned secondary carrier and broker carrier.
+- Designated carrier (used for DC-to-Store master lane / static route reference).
+- Feasible carrier.
+- Scheduled pickup date.
+- Bill of lading number.
+- Total distance, direct distance, distance unit of measure, and out-of-route distance.
+- Equipment type, trailer number, and number of stops.
+
+### KPIs and Metrics in the Report
+- Carrier Assignment Rate % (assigned vs feasible).
+- Broker Carrier Usage % = Shipments with a broker carrier / Total Shipments × 100.
+- On-time Pickup % based on scheduled pickup date versus actual.
+- Out-of-Route Distance % = Out-of-route distance / Total distance × 100.
+- Average Stops per Shipment = Total stops / Total shipments.
+- Shipments by Equipment Type.
+
+### Interactivity in the Report
+- **Drill Down:** Carrier → Lane → Shipment.
+- **Drill Through:** From KPI to individual shipment records.
+- **Slicers:** Carrier, Mode of Transport, Equipment Type, Date Range, Origin/Destination.
+
+### Calculations in the Report
+- Out-of-Route % = Out-of-route distance / Total distance × 100.
+- Average Distance per Shipment = Total distance / Count of shipments.
+- Broker Usage % = Count of shipments with a broker carrier assigned / Total shipments × 100.
+
+### Data Constraints
+- The designated carrier field for DC-to-Store shipments represents the Master Lane or Static Route and must be handled separately from standard carrier assignment logic.
+- Distance values must be non-negative.
+- Distance unit of measure must be consistent across all rows; flag mixed units.
+
+### Validations
+- Confirm priority status of broker carrier and assigned lane fields (pending open questions).
+- Validate that out-of-route distance does not exceed total route distance; flag anomalies.
+- Ensure distance unit of measure is uniform across the dataset.
+
+### Security Access for the Report
+- Carrier performance data visible to logistics, procurement, and operations leadership.
+- Rate and cost data restricted to finance and senior leadership.
+
+### Indicative Layout of the Report
+**Top:** KPI strip — Carrier count, On-time Pickup %, Average Distance, Broker Usage %.
+**Middle:** Carrier assignment heatmap by lane.
+**Bottom:** Carrier detail table with filter panel.
+
+---
+
+## 3. Shipment Distance & Route Analysis Report
+
+### Objective
+Analyze shipment routing efficiency by comparing actual distances to direct distances and identifying out-of-route patterns for network optimization.
+
+### Uses of the Report
+- Identify lanes with consistently high out-of-route distances.
+- Support route optimization and carrier negotiation with distance-based evidence.
+- Compare multi-stop versus direct shipment route efficiency.
+- Feed into cost-per-mile and cost-per-stop analytics.
+
+### Data Attributes in the Report
+- Shipment identifier, status, and type.
+- Origin city, state, and country.
+- Destination city, state, and country.
+- Total route distance, direct distance, out-of-route distance, and distance unit of measure.
+- Number of stops, mode of transport, and equipment type.
+- Assigned carrier and designated carrier.
+
+### KPIs and Metrics in the Report
+- Average Route Distance (miles or km).
+- Average Direct Distance.
+- Out-of-Route Distance % = Out-of-route distance / Total distance × 100.
+- Average Stops per Shipment.
+- Route Efficiency Index = Direct distance / Total distance (closer to 1.0 = more efficient).
+
+### Interactivity in the Report
+- **Drill Down:** Region → Lane → Shipment.
+- **Drill Through:** Lane summary to individual shipment distance details.
+- **Slicers:** Origin/Destination State, Carrier, Mode of Transport, Date Range.
+
+### Calculations in the Report
+- Route Efficiency Index = Direct distance / Total distance.
+- Out-of-Route % = Out-of-route distance / Total distance × 100.
+- Excess Distance = Total distance minus Direct distance.
+
+### Data Constraints
+- Total distance must be greater than zero; exclude zero-distance shipments from rate calculations but count them separately.
+- Distance unit of measure must be uniform; convert if mixed units are present.
+- Direct distance must be less than or equal to total distance; flag exceptions.
+
+### Validations
+- Validate that Route Efficiency Index is between 0 and 1.
+- Ensure zero-distance shipments are excluded from averages but reported separately.
+- Confirm direct distance does not exceed total route distance.
+
+### Security Access for the Report
+- Accessible to logistics planning, network design, and carrier management teams.
+- Facility-level data restricted by regional hierarchy.
+
+### Indicative Layout of the Report
+**Top:** KPI cards — Average Distance, Average Out-of-Route %, Route Efficiency Index.
+**Middle:** Scatter plot showing direct versus actual distance by lane.
+**Bottom:** Lane detail table with distance breakdown.
+
+---
+
+## 4. Bill-to & Financial Reference Report
+
+### Objective
+Provide visibility into bill-to party details and financial reference fields associated with shipments to support accounts receivable, billing audits, and partner financial reviews.
+
+### Uses of the Report
+- Identify bill-to parties by shipment for invoice reconciliation.
+- Support accounts receivable and payment tracking workflows.
+- Audit billing method usage and identify exceptions.
+- Cross-reference purchase order and business partner identifiers.
+
+### Data Attributes in the Report
+- Shipment identifier and status.
+- Bill-to postal code and state/province.
+- Bill of lading number and billing method.
+- Business partner / vendor identifier.
+- Parent and reference shipment identifiers.
+- Purchase order reference.
+- Company identifier.
+- Reconciled flag and reconciliation date (if available).
+
+### KPIs and Metrics in the Report
+- Reconciled Shipment % = Reconciled / Total × 100.
+- Shipments by Billing Method.
+- Shipments by Business Partner (Vendor).
+- Unreconciled Shipment Count with aging.
+
+### Interactivity in the Report
+- **Drill Down:** Business Partner → Shipment.
+- **Drill Through:** Billing summary to shipment detail.
+- **Slicers:** Billing Method, Business Partner, Shipment Status, Date Range, Company.
+
+### Calculations in the Report
+- Reconciled % = Count of reconciled shipments / Total shipments × 100.
+- Unreconciled Aging Days = Current date minus shipment creation date (where not reconciled).
+
+### Data Constraints
+- Business partner identifier is sourced from an extended attribute field — extraction logic must be confirmed.
+- Billing method may have a datatype difference between legacy and new system — a transformation rule is required.
+- Purchase order source in the target system has not yet been identified and must be confirmed.
+
+### Validations
+- Confirm billing method datatype transformation rule before development.
+- Confirm business partner extended attribute extraction logic.
+- Confirm purchase order source field and table in the target system.
+
+### Security Access for the Report
+- Finance and accounts receivable teams can view full billing data.
+- Operations teams see shipment-level reference fields only.
+- Vendor and partner financial data restricted to finance leadership.
+
+### Indicative Layout of the Report
+**Top:** KPI cards — Reconciled %, Unreconciled Count, Distinct Billing Methods.
+**Middle:** Billing method breakdown and partner distribution charts.
+**Bottom:** Shipment billing detail table.
+
+---
+
+## 5. Shipment Creation & Source Audit Report
+
+### Objective
+Audit how and by whom shipments are created and updated in the TMS to support data quality governance, user activity monitoring, and system integration traceability.
+
+### Uses of the Report
+- Identify shipments created via specific sources (manual entry, API, system integration).
+- Monitor user roles responsible for shipment creation and updates.
+- Support data quality investigations by tracing shipment origin.
+- Track integration-created shipments for system health monitoring.
+
+### Data Attributes in the Report
+- Shipment identifier, status, and type.
+- Creation date and time, creation source, and creator role.
+- Company identifier and parent shipment identifier.
+- Secondary carrier (for carrier usage auditing).
+
+### KPIs and Metrics in the Report
+- Shipments by Created Source (Manual, API, Integration, etc.).
+- Shipments by Created Source Type (user role category).
+- Creation Volume Trend (daily and weekly).
+- Shipments by Company.
+
+### Interactivity in the Report
+- **Drill Down:** Source Type → Source → Shipment.
+- **Drill Through:** Source summary to individual shipment creation records.
+- **Slicers:** Created Source, Source Type, Company, Date Range.
+
+### Calculations in the Report
+- Creation Rate = Count of shipments by source per day or week.
+- Source Mix % = Count by source / Total count × 100.
+
+### Data Constraints
+- Creation source and creator role must be non-null for audit completeness.
+- Creator role is derived via a join to the user role reference table — the user must exist in that table.
+
+### Validations
+- Validate that every shipment has a resolvable creator role via the user role reference join.
+- Ensure creation date is not null and falls within the expected operational date range.
+
+### Security Access for the Report
+- Data governance and BI teams can view full audit data.
+- Operations teams see aggregate views only.
+- Employee-level creation data restricted by role.
+
+### Indicative Layout of the Report
+**Top:** KPI cards — Total Shipments, Distinct Sources, Top Source Type.
+**Middle:** Creation volume trend line and source breakdown bar chart.
+**Bottom:** Detailed audit table with creation source and role.
+
+---
+
+## Open Questions & Issues
+
+The following items must be resolved before report development can begin. Each item has been raised during the field mapping review.
+
+1. **Broker Carrier Fields** — Are the broker carrier code and ID fields used in priority reporting? The source system notes say "Not used in priority reporting" but the reporting team has flagged them as used. Confirmation needed from the business.
+
+2. **Assigned Lane** — Not listed in the priority reporting list in the source system, but flagged as used in reporting by the SCDE team. Priority status must be confirmed.
+
+3. **Billing Method** — There is a datatype difference between the legacy system (numeric) and the new system (string). A transformation and mapping rule is required before this field can be used in reports.
+
+4. **Booking Facility Fields (Origin and Destination)** — These fields are flagged as not used in priority reporting in the source system notes, but the SCDE team has flagged them as used. Confirmation needed.
+
+5. **Cancelled Shipment Flag** — The legacy system used a specific planning status code to identify cancellations. The mapping of legacy status codes to the next-generation system codes (e.g., 0 = 00800, 1 = 0500) needs to be confirmed with a real data example.
+
+6. **Number of Docks** — This field is referenced in reports but cannot be found in the target system. It should be skipped for now unless a source can be identified.
+
+7. **Shipment ID vs TC Shipment ID** — These two identifier fields need to be disambiguated using a real data example. The mapping between the primary key and the shipment ID field must be validated.
+
+8. **Purchase Order** — No source table or column has been identified in the target system. This must be located before the field can be included in the Bill-to & Financial Reference Report.
+
+9. **Business Partner / Vendor ID** — This field is now stored as an extended attribute in the target system. The extraction logic from the extended attribute structure must be confirmed before use in reports.
+
+10. **Baseline Cost** — Agreed to be excluded for now as it does not appear to be used in any active reports. Final decision to be confirmed by the business.
+
+---
+
+## Review & Sign-off Plan
+
+- Walkthrough to be conducted with Business, SCDE / Reporting, Data Engineering, and Architecture teams.
+- All open questions listed above must be resolved prior to sign-off.
+- Sign-off is required from all stakeholder groups before proceeding to the logical data modelling phase.
+- Feedback items captured during walkthrough to be incorporated into an updated version of this document.
