@@ -1,107 +1,75 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Reviewer for Databricks Silver DE Pipeline PySpark code - validation, compatibility, and standards check.
+## *Description*:   Reviewer for Databricks Silver DE Pipeline PySpark code: Validates data engineering workflow, transformation logic, and Databricks compatibility.
 ## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
 
 # Databricks DE Pipeline Reviewer
 
----
+## 1. Validation Against Metadata
 
-## Validation Against Metadata
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Source/Target schema alignment | ✅ | Silver and error schemas are explicitly defined and used in select statements. |
+| Data types consistency | ✅ | Data types in StructType match usage in transformations and writes. |
+| Column names | ✅ | All referenced columns exist in schema and are used consistently. |
 
-| Check | Status |
-|-------|--------|
-| Source/Target schema alignment | ✅ |
-| Data types consistency | ✅ |
-| Column names match | ✅ |
+## 2. Compatibility with Databricks
 
-- The PySpark code defines both Silver and Error table schemas explicitly, and all columns referenced in transformations and writes are present in the schema definitions.
-- Data types (StringType, DoubleType, DateType, IntegerType) are consistent between schema and usage.
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Databricks syntax | ✅ | All SparkSession, DataFrame, and Delta Lake operations are supported in Databricks. |
+| Unsupported features | ✅ | No unsupported features detected (per knowledge base). |
+| Logging | ✅ | Uses Python logging, which is supported in Databricks notebooks and jobs. |
 
----
+## 3. Validation of Join Operations
 
-## Compatibility with Databricks
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Join operations present | ✅ | No explicit joins in this pipeline; deduplication and filters are used. |
+| Join columns exist | ✅ | N/A (no joins). |
+| Data type compatibility | ✅ | N/A (no joins). |
 
-| Check | Status |
-|-------|--------|
-| Databricks-supported syntax | ✅ |
-| Delta Lake usage | ✅ |
-| Unsupported features | ✅ |
+## 4. Syntax and Code Review
 
-- The code uses only supported PySpark and Delta Lake features (e.g., `.withColumn`, `.dropDuplicates`, `.write.format('delta')`).
-- No unsupported features (UDFs, Pandas UDFs, or non-Delta formats) are present.
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Syntax errors | ✅ | No syntax errors detected. |
+| Table/column references | ✅ | All referenced tables and columns are defined and used correctly. |
+| Indentation/formatting | ✅ | Code is well-formatted and modular. |
 
----
+## 5. Compliance with Development Standards
 
-## Validation of Join Operations
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Modular design | ✅ | Code is organized into logical steps with clear comments. |
+| Logging | ✅ | Logging is implemented for validation and error handling. |
+| Error handling | ✅ | Invalid records are redirected to error tables with detailed logs. |
 
-| Check | Status |
-|-------|--------|
-| Join operations present | ❌ |
-| Join columns valid | N/A |
+## 6. Validation of Transformation Logic
 
-- No join operations are present in this pipeline. All transformations are performed on a single DataFrame (`bronze_df`).
+| Checkpoint | Status | Details |
+|------------|--------|---------|
+| Derived columns | ✅ | `order_total_with_tax` and `customer_segment` are derived as per business rules. |
+| Calculations | ✅ | Calculations use correct PySpark functions and logic. |
+| Mapping rules | ✅ | Transformation logic aligns with mapping and schema. |
 
----
-
-## Syntax and Code Review
-
-| Check | Status |
-|-------|--------|
-| Syntax errors | ✅ |
-| Table/column references | ✅ |
-| Logging present | ✅ |
-| Indentation/formatting | ✅ |
-
-- The code is syntactically correct and follows standard PySpark and Python formatting.
-- Logging is configured and used for reporting processed record counts.
-
----
-
-## Compliance with Development Standards
-
-| Check | Status |
-|-------|--------|
-| Modular design | ✅ |
-| Logging | ✅ |
-| Code formatting | ✅ |
-
-- The code is modular, with clear separation of schema definition, transformation, validation, error handling, and output.
-- Logging is implemented using Python's `logging` module.
-
----
-
-## Validation of Transformation Logic
-
-| Check | Status |
-|-------|--------|
-| Derived columns/calculations | ✅ |
-| Mapping rules followed | ✅ |
-| Error handling | ✅ |
-
-- `order_total_with_tax` is calculated as `order_total * 1.08` as per business logic.
-- `customer_segment` is derived based on `order_total` thresholds.
-- Invalid records are redirected to error tables with detailed error descriptions.
-
----
-
-## Error Reporting and Recommendations
+## 7. Error Reporting and Recommendations
 
 | Issue | Recommendation |
 |-------|---------------|
-| None found | N/A |
+| None detected | N/A |
 
-- No compatibility issues, syntax errors, or logical discrepancies were found.
-- The code is ready for execution in Databricks and aligns with the provided data models and mapping rules.
+## 8. Additional Notes
+- The pipeline is fully executable in Databricks.
+- No join operations are present; deduplication and filtering are used for data quality.
+- All transformation logic and error handling are implemented as per best practices.
+- No compatibility issues or discrepancies found.
 
----
-
-## API Cost
-
-- API cost consumed for this call: **0.0025 USD**
+## 9. API Cost
+- API cost consumed for this call: 0.0025 USD
 
 ---
 
