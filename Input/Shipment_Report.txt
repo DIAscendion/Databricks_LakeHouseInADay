@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://developer.cognos.com/schemas/report/7.3/" useStyleSheet="true" expressionLocale="en-us">
+  <modelPath>/content/package[@name='Shipment Operations']/model[@name='model']</modelPath>
+  <layout>
+    <reportPages>
+      <page>
+        <pageBody>
+          <contents>
+
+            <!-- ═══════════════════════════════════════════
+                 REPORT TITLE BLOCK
+            ════════════════════════════════════════════ -->
+            <textItem>
+              <dataSource>
+                <staticValue>Shipment Operations Report</staticValue>
+              </dataSource>
+              <style>
+                <CSS value="font-family:Arial,sans-serif;font-size:18pt;font-weight:bold;color:#0f2d52;padding:10px 0 2px 0;"/>
+              </style>
+            </textItem>
+            <textItem>
+              <dataSource>
+                <staticValue>TMS Shipment Database | All Regions | Current Snapshot</staticValue>
+              </dataSource>
+              <style>
+                <CSS value="font-family:Arial,sans-serif;font-size:9pt;color:#5a7080;padding-bottom:10px;"/>
+              </style>
+            </textItem>
+
+            <!-- ═══════════════════════════════════════════
+                 KPI SUMMARY — 4-COLUMN TABLE
+            ════════════════════════════════════════════ -->
+            <table>
+              <style>
+                <CSS value="width:100%;border-collapse:collapse;margin-bottom:16px;background:#f6f9fc;border:1px solid #cdd7e2;"/>
+              </style>
+              <tableRows>
+                <tableRow>
+                  <!-- KPI 1: Total Row Count -->
+                  <tableCell>
+                    <style><CSS value="padding:14px 18px;border-right:1px solid #cdd7e2;"/></style>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>TOTAL ROW COUNT</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#5a7080;letter-spacing:0.08em;display:block;margin-bottom:4px;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>20</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:24pt;font-weight:bold;color:#0f2d52;display:block;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>All shipment records</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#8fa4b4;display:block;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                  <!-- KPI 2: Distinct Shipment IDs -->
+                  <tableCell>
+                    <style><CSS value="padding:14px 18px;border-right:1px solid #cdd7e2;"/></style>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>DISTINCT SHIPMENT IDs</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#5a7080;letter-spacing:0.08em;display:block;margin-bottom:4px;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>20</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:24pt;font-weight:bold;color:#0f2d52;display:block;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>Unique identifiers</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#8fa4b4;display:block;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                  <!-- KPI 3: Total Distance -->
+                  <tableCell>
+                    <style><CSS value="padding:14px 18px;border-right:1px solid #cdd7e2;"/></style>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>TOTAL DISTANCE</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#5a7080;letter-spacing:0.08em;display:block;margin-bottom:4px;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>11K</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:24pt;font-weight:bold;color:#0f2d52;display:block;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>Miles across all shipments</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#8fa4b4;display:block;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                  <!-- KPI 4: Avg Distance -->
+                  <tableCell>
+                    <style><CSS value="padding:14px 18px;"/></style>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>AVG DISTANCE</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#5a7080;letter-spacing:0.08em;display:block;margin-bottom:4px;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>538.08</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:24pt;font-weight:bold;color:#0f2d52;display:block;"/></style>
+                      </textItem>
+                      <textItem>
+                        <dataSource><staticValue>Miles per shipment</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:8pt;color:#8fa4b4;display:block;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                </tableRow>
+              </tableRows>
+            </table>
+
+            <!-- ═══════════════════════════════════════════
+                 CHART 1 — SHIPMENT STATUS BREAKDOWN (Bar)
+            ════════════════════════════════════════════ -->
+            <textItem>
+              <dataSource><staticValue>SHIPMENT STATUS BREAKDOWN</staticValue></dataSource>
+              <style><CSS value="font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#0f2d52;letter-spacing:0.07em;text-transform:uppercase;padding:8px 0 4px 0;display:block;border-top:2px solid #cdd7e2;margin-top:8px;"/></style>
+            </textItem>
+            <chart type="Bar" depth="2D">
+              <style>
+                <CSS value="width:480px;height:200px;margin-bottom:16px;"/>
+              </style>
+              <chartBody>
+                <bars>
+                  <bar>
+                    <dataPoint>
+                      <label>40</label>
+                      <value>1</value>
+                    </dataPoint>
+                    <dataPoint>
+                      <label>70</label>
+                      <value>4</value>
+                    </dataPoint>
+                    <dataPoint>
+                      <label>80</label>
+                      <value>14</value>
+                    </dataPoint>
+                    <dataPoint>
+                      <label>90</label>
+                      <value>1</value>
+                    </dataPoint>
+                  </bar>
+                </bars>
+              </chartBody>
+              <chartAxes>
+                <categoryAxis>
+                  <axisTitle>
+                    <contents>
+                      <textItem><dataSource><staticValue>Shipment Status</staticValue></dataSource></textItem>
+                    </contents>
+                  </axisTitle>
+                </categoryAxis>
+                <valueAxis>
+                  <axisTitle>
+                    <contents>
+                      <textItem><dataSource><staticValue>Total Row Count</staticValue></dataSource></textItem>
+                    </contents>
+                  </axisTitle>
+                </valueAxis>
+              </chartAxes>
+              <palette>
+                <paletteEntry fill="#1a4a80"/>
+                <paletteEntry fill="#2e7fd4"/>
+                <paletteEntry fill="#5a9fd4"/>
+                <paletteEntry fill="#0f2d52"/>
+              </palette>
+            </chart>
+
+            <!-- ═══════════════════════════════════════════
+                 CHART 2 — MODE OF TRANSPORT (Pie)
+            ════════════════════════════════════════════ -->
+            <textItem>
+              <dataSource><staticValue>MODE OF TRANSPORT BREAKDOWN</staticValue></dataSource>
+              <style><CSS value="font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#0f2d52;letter-spacing:0.07em;text-transform:uppercase;padding:8px 0 4px 0;display:block;border-top:2px solid #cdd7e2;margin-top:8px;"/></style>
+            </textItem>
+            <chart type="Pie" depth="2D">
+              <style>
+                <CSS value="width:300px;height:220px;margin-bottom:16px;"/>
+              </style>
+              <chartBody>
+                <pies>
+                  <pie>
+                    <dataPoint>
+                      <label>Delivery</label>
+                      <value>12</value>
+                    </dataPoint>
+                    <dataPoint>
+                      <label>Pickup</label>
+                      <value>8</value>
+                    </dataPoint>
+                  </pie>
+                </pies>
+              </chartBody>
+              <palette>
+                <paletteEntry fill="#0f2d52"/>
+                <paletteEntry fill="#5a9fd4"/>
+              </palette>
+              <legend>
+                <style>
+                  <CSS value="font-family:Arial,sans-serif;font-size:9pt;"/>
+                </style>
+              </legend>
+            </chart>
+
+            <!-- ═══════════════════════════════════════════
+                 SECTION LABEL — DETAIL TABLE
+            ════════════════════════════════════════════ -->
+            <textItem>
+              <dataSource><staticValue>SHIPMENT DETAIL — LISTING VIEW</staticValue></dataSource>
+              <style><CSS value="font-family:Arial,sans-serif;font-size:9pt;font-weight:bold;color:#0f2d52;letter-spacing:0.07em;text-transform:uppercase;padding:8px 0 4px 0;display:block;border-top:2px solid #cdd7e2;margin-top:8px;background:#dce6f0;padding:5px 14px;"/></style>
+            </textItem>
+
+            <!-- ═══════════════════════════════════════════
+                 DATA TABLE — SHIPMENT DETAIL
+            ════════════════════════════════════════════ -->
+            <list>
+              <style>
+                <CSS value="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt;"/>
+              </style>
+              <listColumns>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>SHIPMENT_ID</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;font-family:'Courier New',monospace;color:#1a4a80;font-weight:bold;font-size:9.5pt;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>20524674</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>SHIPMENT_STATUS</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;font-weight:bold;color:#0f2d52;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>80</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>SHIPMENT_TYPE</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>O_STOP_LOCATION_NAME</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>Brunton/Anchor3PL Goodyear AZ</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>O_CITY</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>Goodyear</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>O_STATE_PROV</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;border-right:1px solid #1a4a80;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>O_POSTAL_CODE</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;border-right:1px solid #eaf0f6;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>85338</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+                <listColumn>
+                  <listColumnTitle>
+                    <style><CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;letter-spacing:0.05em;text-align:left;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>O_COUNTRY</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnTitle>
+                  <listColumnBody>
+                    <style><CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>US</staticValue></dataSource></textItem>
+                    </contents>
+                  </listColumnBody>
+                </listColumn>
+              </listColumns>
+
+              <!-- Static data rows embedded as list rows -->
+              <listRows>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>20524674</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Brunton/Anchor3PL Goodyear AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Goodyear</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>85338</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>20553009</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Anchor3PL Goodyear AZ East</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Goodyear</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>85395</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>20601724</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Anchor3PL Goodyear AZ East</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Goodyear</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>85395</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CNKL4016274</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CNKL4016376</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CNKL4018276</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CNKL4018375</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CNKL4020547</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>70</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS00003866</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>511 Tactical, Lathrop, CA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Lathrop</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>CA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>95330</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS00006331</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Coghlans, Saint Paul, MN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Saint Paul</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>MN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>55101</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS00009409</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Brunton/Anchor3PL Salt Lake City UT</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Salt Lake City</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>UT</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>84104</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20163741</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Callaway Golf, Fort Worth TX</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Fort Worth</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>TX</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>76177</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20174892</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Vista Outdoor, Anoka MN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Anoka</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>MN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>55303</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20189034</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>70</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Ruger, Prescott AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Prescott</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>86301</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20193210</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20198421</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>40</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20201533</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Anchor3PL Reno NV</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Reno</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>NV</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>89502</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20204769</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>70</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Outbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker PA Hub</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Hunker</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>PA</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>15639</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20209812</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>90</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Coghlans, Memphis TN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Memphis</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>TN</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>38103</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+                <listRow><listCells><listCell><textItem><dataSource><staticValue>CS20215043</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>80</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Inbound</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Brunton/Anchor3PL Phoenix AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>Phoenix</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>AZ</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>85034</staticValue></dataSource></textItem></listCell><listCell><textItem><dataSource><staticValue>US</staticValue></dataSource></textItem></listCell></listCells></listRow>
+              </listRows>
+            </list>
+
+          </contents>
+        </pageBody>
+
+        <!-- Page header -->
+        <pageHeader>
+          <contents>
+            <table>
+              <style><CSS value="width:100%;background:#0f2d52;color:#fff;padding:8px 14px;"/></style>
+              <tableRows>
+                <tableRow>
+                  <tableCell>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>Shipment Operations Report</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:13pt;font-weight:bold;color:#fff;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                  <tableCell>
+                    <style><CSS value="text-align:right;"/></style>
+                    <contents>
+                      <textItem>
+                        <dataSource><staticValue>IBM Cognos Analytics</staticValue></dataSource>
+                        <style><CSS value="font-family:Arial,sans-serif;font-size:9pt;color:rgba(255,255,255,0.7);font-style:italic;"/></style>
+                      </textItem>
+                    </contents>
+                  </tableCell>
+                </tableRow>
+              </tableRows>
+            </table>
+          </contents>
+        </pageHeader>
+
+        <!-- Page footer -->
+        <pageFooter>
+          <contents>
+            <table>
+              <style><CSS value="width:100%;background:#0f2d52;color:rgba(255,255,255,0.55);padding:5px 14px;font-family:Arial,sans-serif;font-size:8pt;"/></style>
+              <tableRows>
+                <tableRow>
+                  <tableCell>
+                    <contents>
+                      <textItem><dataSource><staticValue>IBM Cognos Analytics | Shipment Operations Report</staticValue></dataSource></textItem>
+                    </contents>
+                  </tableCell>
+                  <tableCell>
+                    <style><CSS value="text-align:right;"/></style>
+                    <contents>
+                      <textItem><dataSource><staticValue>Confidential — Internal Use Only</staticValue></dataSource></textItem>
+                    </contents>
+                  </tableCell>
+                </tableRow>
+              </tableRows>
+            </table>
+          </contents>
+        </pageFooter>
+
+      </page>
+    </reportPages>
+  </layout>
+
+  <!-- ═══════════════════════════════════════════
+       REPORT STYLES
+  ════════════════════════════════════════════ -->
+  <reportStyles>
+    <style name="report">
+      <CSS value="font-family:Arial,sans-serif;font-size:10pt;color:#1a2b3c;"/>
+    </style>
+    <style name="list">
+      <CSS value="border-collapse:collapse;width:100%;"/>
+    </style>
+    <style name="listColumnTitle">
+      <CSS value="background:#0f2d52;color:#d8e8f5;font-weight:bold;padding:7px 10px;font-size:8.5pt;"/>
+    </style>
+    <style name="listCell">
+      <CSS value="padding:5px 10px;border-bottom:1px solid #dde6ef;"/>
+    </style>
+  </reportStyles>
+
+</report>
