@@ -1,51 +1,64 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Reviewer for Bronze Layer Physical Data Model and DDL Scripts
+## *Description*:   Reviewer output for Bronze layer physical data model and DDL scripts for TMS Shipment application
 ## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
 
-# Bronze Layer Physical Data Model Reviewer
+# Bronze Data Model Reviewer
 
 ## 1. Alignment with Conceptual Data Model
 * 1.1 ✅: Covered Requirements
-   - The Bronze model includes all core shipment identifiers, status, type, dates, carrier, equipment, cost, and audit fields as described in the conceptual model and source structure.
-   - All major entities and relationships (shipment, carrier, facility, customer, audit) are represented.
-   - All columns from the source (Shipment_Process_Table.txt) are mapped to the physical model, with appropriate data types and naming conventions.
+  - The physical model includes all major entities and attributes from the conceptual model, such as SHIPMENT, CARRIER, FACILITY, ROUTE, BILLING, BUSINESS_PARTNER, USER_ROLE, and AUDIT.
+  - Key shipment attributes (e.g., SHIPMENT_ID, STATUS, TYPE, DATES, ORIGIN/DESTINATION, CARRIER, COST, REVENUE, CUSTOMER, PARTNER) are present.
+  - Relationships between shipment and carrier, facility, billing, business partner, and route are represented in the model.
 * 1.2 ❌: Missing Requirements
-   - No significant missing requirements identified. All source columns are present in the physical model. 
+  - Some attributes from the source (e.g., certain flags, rarely used fields, or fields marked as 'not used') are not explicitly present in the DDL. However, most critical reporting and operational fields are included.
+  - No explicit support for multi-valued or array fields (if required by source).
 
 ## 2. Source Data Structure Compatibility
 * 2.1 ✅: Aligned Elements
-   - All required data elements from the source are present in the Bronze model.
-   - Data types are mapped appropriately (e.g., DECIMAL, STRING for VARCHAR, TIMESTAMP for DATETIME).
-   - Nullable and not-null constraints are not enforced in the Bronze layer, which is expected.
+  - Most columns from the source SHIPMENT table are mapped to the Bronze model, preserving names and data types (as STRING or DECIMAL/INT for numerics).
+  - Nullable fields are supported, matching the source's flexibility.
+  - Metadata columns (load_timestamp, update_timestamp, source_system) are added for governance.
 * 2.2 ❌: Misaligned or Missing Elements
-   - No misaligned or missing elements found. All source fields are represented in the Bronze model.
+  - Some source fields with specific constraints (e.g., NOT NULL, domain values) are not enforced in the Bronze model (by design, as Bronze is raw ingest).
+  - Some rarely used or deprecated fields (e.g., fields marked 'not used' in source) are omitted.
 
 ## 3. Best Practices Assessment
 * 3.1 ✅: Adherence to Best Practices
-   - Raw data preservation is followed (no transformations, all source columns included).
-   - Metadata columns (load_timestamp, update_timestamp, source_system) are present for governance.
-   - No constraints or keys are enforced, as per Bronze layer principles.
-   - Naming conventions are consistent and descriptive.
-   - Delta Lake properties for auto-optimize are set (though not relevant for Snowflake, this is a Databricks-specific best practice).
+  - Naming conventions are consistent (bz_ prefix, snake_case, clear schema separation).
+  - Metadata and audit columns are present for governance and lineage.
+  - Partitioning and clustering strategies are mentioned as recommendations.
+  - No enforced constraints, as per Delta Lake/Databricks Bronze layer best practices.
 * 3.2 ❌: Deviations from Best Practices
-   - No major deviations. The model is normalized for a Bronze/raw layer and follows Medallion architecture principles.
+  - Use of STRING for all text fields may reduce type safety (but is acceptable for Bronze/raw layer).
+  - No explicit partitioning in DDL (left to implementation phase).
+  - No primary/foreign key constraints (by design, but should be documented for downstream layers).
 
 ## 4. DDL Script Compatibility
 * 4.1 ❌ Snowflake SQL Compatibility
-   - The DDL scripts use Databricks/Spark SQL syntax (e.g., 'USING DELTA', 'LOCATION', 'TBLPROPERTIES'), which are not supported in Snowflake.
-   - Data types like STRING and TIMESTAMP are compatible in Snowflake, but 'USING DELTA' and Delta-specific properties are not.
+  - The DDL scripts use Databricks/Delta Lake syntax (e.g., 'USING DELTA', 'LOCATION', no constraints), which is NOT compatible with Snowflake SQL.
+  - Data types like STRING are not valid in Snowflake (should use VARCHAR, NUMBER, etc.).
+  - Partitioning and clustering are not defined in Snowflake style.
 * 4.2 ✅ Used any unsupported Snowflake features
-   - No unsupported Snowflake features (such as Delta Lake, Spark-specific keywords) are present in the context of Snowflake DDL. However, the DDL is not directly portable to Snowflake without modification.
+  - No explicit use of unsupported Snowflake features (e.g., no Delta Lake-specific functions inside SQL logic), but the table definitions themselves are not portable to Snowflake.
+  - No Spark-specific keywords or external formats in the DDL logic.
 
 ## 5. Identified Issues and Recommendations
-- The DDL scripts are designed for Databricks Delta Lake and are not directly compatible with Snowflake. To use in Snowflake, remove 'USING DELTA', 'LOCATION', and 'TBLPROPERTIES' clauses, and replace STRING with VARCHAR, TIMESTAMP with TIMESTAMP_NTZ, and DECIMAL with NUMBER.
-- No missing columns or misalignments with the source data structure.
-- For Snowflake, consider adding clustering keys or partitioning strategies at the Silver/Gold layer for performance.
-- Ensure that all audit and metadata columns are retained for data governance.
+- ❌ The DDL scripts are not directly compatible with Snowflake. For Snowflake, replace 'STRING' with 'VARCHAR', 'DECIMAL' with 'NUMBER', remove 'USING DELTA' and 'LOCATION', and add constraints as needed.
+- ✅ The model is well-aligned with the source and conceptual model for Databricks/Delta Lake use cases.
+- ❌ No enforcement of NOT NULL or domain constraints; recommend documenting these for Silver/Gold layers.
+- ✅ Metadata and audit columns are present for governance.
+- ❌ No explicit partitioning or clustering in DDL; recommend adding these for large tables in downstream layers.
+- ✅ Naming conventions and model structure are clear and consistent.
+
+### Recommendations:
+1. For Snowflake compatibility, create a separate DDL script using Snowflake syntax and supported data types.
+2. Document all constraints and domain values for downstream (Silver/Gold) layers where data quality is enforced.
+3. Consider adding partitioning and clustering keys in Silver/Gold layers for performance.
+4. Maintain a mapping document between source, Bronze, and downstream models for traceability.
 
 ---
 
