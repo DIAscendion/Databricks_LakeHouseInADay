@@ -10,16 +10,16 @@ _____________________________________________
 
 ## 1. Overview
 
-This document defines the physical data model for the Gold layer in the Medallion architecture for the TMS (Transportation Management System) Shipment application. The Gold layer stores curated, aggregated, and dimensional data for advanced analytics, reporting, and business intelligence. It includes error and audit tables for robust data governance.
+This document defines the physical data model for the Gold layer in the Medallion architecture for the TMS (Transportation Management System) Shipment application. The Gold layer stores aggregated, dimensional, and fact data, optimized for analytics and reporting. It includes error and audit tables for robust data governance.
 
 ---
 
 ## 2. Gold Layer DDL Scripts
 
-### 2.1 Fact Table: go_shipment_facts
+### 2.1 Main Shipment Fact Table
 
 ```sql
-CREATE TABLE IF NOT EXISTS gold.go_shipment_facts (
+CREATE TABLE IF NOT EXISTS gold.gd_shipment (
   id BIGINT,
   SHIPMENT_ID STRING,
   TC_SHIPMENT_ID STRING,
@@ -305,281 +305,91 @@ CREATE TABLE IF NOT EXISTS gold.go_shipment_facts (
 )
 USING DELTA
 PARTITIONED BY (CREATED_DTTM)
-LOCATION '/mnt/gold/shipment_facts'
+LOCATION '/mnt/gold/shipment'
 TBLPROPERTIES (
   'delta.autoOptimize.optimizeWrite' = 'true',
   'delta.autoOptimize.autoCompact' = 'true'
 );
 ```
 
-### 2.2 Dimension Table: go_carrier_dimension
+### 2.2 Error Data Table
 
 ```sql
-CREATE TABLE IF NOT EXISTS gold.go_carrier_dimension (
-  carrier_id BIGINT,
-  carrier_key STRING,
-  primary_carrier_name STRING,
-  secondary_carrier_name STRING,
-  broker_carrier_name STRING,
-  mode_of_transport STRING,
-  designated_carrier STRING,
-  feasible_carrier STRING,
-  carrier_status STRING,
-  effective_start_date DATE,
-  effective_end_date DATE,
-  is_current BOOLEAN,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-PARTITIONED BY (effective_start_date)
-LOCATION '/mnt/gold/carrier_dimension'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.3 Dimension Table: go_facility_dimension
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_facility_dimension (
-  facility_id BIGINT,
-  facility_key STRING,
-  facility_name STRING,
-  facility_type STRING,
-  facility_address STRING,
-  facility_city STRING,
-  facility_state STRING,
-  facility_postal_code STRING,
-  facility_country STRING,
-  facility_status STRING,
-  effective_start_date DATE,
-  effective_end_date DATE,
-  is_current BOOLEAN,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-PARTITIONED BY (effective_start_date)
-LOCATION '/mnt/gold/facility_dimension'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.4 Dimension Table: go_user_role_dimension
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_user_role_dimension (
-  user_role_id BIGINT,
-  user_role_key STRING,
-  creator_role STRING,
-  role_description STRING,
-  role_department STRING,
-  role_permissions STRING,
-  role_status STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-LOCATION '/mnt/gold/user_role_dimension'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.5 Code Table: go_shipment_status_codes
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_shipment_status_codes (
-  status_id BIGINT,
-  status_code STRING,
-  status_description STRING,
-  status_category STRING,
-  is_active BOOLEAN,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-LOCATION '/mnt/gold/shipment_status_codes'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.6 Code Table: go_transport_mode_codes
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_transport_mode_codes (
-  transport_mode_id BIGINT,
-  transport_mode_code STRING,
-  transport_mode_description STRING,
-  transport_category STRING,
-  is_active BOOLEAN,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-LOCATION '/mnt/gold/transport_mode_codes'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.7 Error Data Table: go_data_validation_errors
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_data_validation_errors (
+CREATE TABLE IF NOT EXISTS gold.gd_shipment_error (
   error_id BIGINT,
-  error_key STRING,
-  pipeline_run_id STRING,
   table_name STRING,
-  column_name STRING,
-  record_identifier STRING,
-  validation_rule STRING,
-  validation_rule_description STRING,
+  record_id STRING,
   error_type STRING,
-  error_severity STRING,
   error_message STRING,
-  expected_value STRING,
-  actual_value STRING,
-  error_count INT,
-  first_occurrence_date TIMESTAMP,
-  last_occurrence_date TIMESTAMP,
-  resolution_status STRING,
-  resolution_date TIMESTAMP,
-  resolved_by STRING,
+  error_timestamp TIMESTAMP,
+  layer STRING,
   load_date TIMESTAMP,
+  update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (first_occurrence_date)
-LOCATION '/mnt/gold/data_validation_errors'
+PARTITIONED BY (error_timestamp)
+LOCATION '/mnt/gold/shipment_error'
 TBLPROPERTIES (
   'delta.autoOptimize.optimizeWrite' = 'true',
   'delta.autoOptimize.autoCompact' = 'true'
 );
 ```
 
-### 2.8 Audit Table: go_pipeline_audit
+### 2.3 Audit Table
 
 ```sql
-CREATE TABLE IF NOT EXISTS gold.go_pipeline_audit (
+CREATE TABLE IF NOT EXISTS gold.gd_audit (
   audit_id BIGINT,
-  audit_key STRING,
   pipeline_name STRING,
-  pipeline_run_id STRING,
-  execution_start_time TIMESTAMP,
-  execution_end_time TIMESTAMP,
-  execution_duration_seconds INT,
-  pipeline_status STRING,
-  records_processed INT,
-  records_inserted INT,
-  records_updated INT,
-  records_deleted INT,
-  source_table_name STRING,
-  target_table_name STRING,
-  pipeline_version STRING,
-  execution_user STRING,
-  cluster_details STRING,
-  memory_usage_mb INT,
-  cpu_usage_percent DECIMAL(5,2),
+  execution_id STRING,
+  start_time TIMESTAMP,
+  end_time TIMESTAMP,
+  status STRING,
   error_message STRING,
-  load_date TIMESTAMP,
-  source_system STRING
-)
-USING DELTA
-PARTITIONED BY (execution_start_time)
-LOCATION '/mnt/gold/pipeline_audit'
-TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
-
-### 2.9 Aggregated Table: go_shipment_daily_summary
-
-```sql
-CREATE TABLE IF NOT EXISTS gold.go_shipment_daily_summary (
-  summary_id BIGINT,
-  summary_date DATE,
-  carrier_key STRING,
-  facility_key STRING,
-  total_shipment_count INT,
-  active_shipment_count INT,
-  completed_shipment_count INT,
-  cancelled_shipment_count INT,
-  reconciled_shipment_count INT,
-  cancelled_shipment_percentage DECIMAL(5,2),
-  reconciled_shipment_percentage DECIMAL(5,2),
-  total_route_distance_sum DECIMAL(12,2),
-  average_route_distance DECIMAL(10,2),
-  total_stops_sum INT,
-  average_stops_per_shipment DECIMAL(10,2),
-  out_of_route_distance_sum DECIMAL(12,2),
-  out_of_route_percentage DECIMAL(5,2),
-  route_efficiency_index DECIMAL(5,2),
-  broker_carrier_usage_count INT,
-  broker_carrier_usage_percentage DECIMAL(5,2),
+  record_count BIGINT,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (summary_date)
-LOCATION '/mnt/gold/shipment_daily_summary'
+PARTITIONED BY (start_time)
+LOCATION '/mnt/gold/audit'
 TBLPROPERTIES (
   'delta.autoOptimize.optimizeWrite' = 'true',
   'delta.autoOptimize.autoCompact' = 'true'
 );
 ```
 
-### 2.10 Aggregated Table: go_carrier_performance_monthly
+### 2.4 Aggregated Table Example (Shipment Cost Summary)
 
 ```sql
-CREATE TABLE IF NOT EXISTS gold.go_carrier_performance_monthly (
-  summary_id BIGINT,
-  summary_month DATE,
-  carrier_key STRING,
-  total_shipments_assigned INT,
-  completed_shipments INT,
-  cancelled_shipments INT,
-  completion_rate_percentage DECIMAL(5,2),
-  cancellation_rate_percentage DECIMAL(5,2),
-  total_distance_covered DECIMAL(12,2),
-  average_distance_per_shipment DECIMAL(10,2),
-  total_stops_serviced INT,
-  average_stops_per_shipment DECIMAL(10,2),
-  route_efficiency_score DECIMAL(5,2),
-  on_time_performance_percentage DECIMAL(5,2),
-  carrier_utilization_percentage DECIMAL(5,2),
+CREATE TABLE IF NOT EXISTS gold.gd_shipment_cost_summary (
+  id BIGINT,
+  SHIPMENT_ID STRING,
+  TOTAL_COST DECIMAL(10,2),
+  ACTUAL_COST DECIMAL(10,2),
+  ESTIMATED_COST DECIMAL(10,2),
+  BASELINE_COST DECIMAL(10,2),
+  LINEHAUL_COST DECIMAL(10,2),
+  ACCESSORIAL_COST DECIMAL(10,2),
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (summary_month)
-LOCATION '/mnt/gold/carrier_performance_monthly'
+PARTITIONED BY (load_date)
+LOCATION '/mnt/gold/shipment_cost_summary'
 TBLPROPERTIES (
   'delta.autoOptimize.optimizeWrite' = 'true',
   'delta.autoOptimize.autoCompact' = 'true'
 );
 ```
 
-### 2.11 Update DDL Script (Example: Add a new column)
+### 2.5 Update DDL Script (Example: Add a new column)
 
 ```sql
-ALTER TABLE gold.go_shipment_facts ADD COLUMNS (new_column STRING);
+ALTER TABLE gold.gd_shipment ADD COLUMNS (new_column STRING);
 ```
 
 ---
@@ -587,10 +397,9 @@ ALTER TABLE gold.go_shipment_facts ADD COLUMNS (new_column STRING);
 ## 3. Data Retention Policies
 
 ### 3.1 Retention Periods for Gold Layer
-- **Active Data**: 3 years from load_date
-- **Error Data**: 5 years from first_occurrence_date
+- **Active Data**: 5 years from load_date
+- **Error Data**: 5 years from error_timestamp
 - **Audit Data**: 5 years from load_date
-- **Aggregated Data**: 5 years from summary_date/summary_month
 
 ### 3.2 Archiving Strategies
 - Data older than retention period is moved to a cold storage location (e.g., `/mnt/archive/gold/`)
@@ -601,62 +410,49 @@ ALTER TABLE gold.go_shipment_facts ADD COLUMNS (new_column STRING);
 
 ## 4. Conceptual Data Model Diagram (Tabular Form)
 
-| Source Table                  | Key Field                | Target Table                  | Relationship Type | Description                                  |
-|------------------------------|--------------------------|-------------------------------|-------------------|----------------------------------------------|
-| go_shipment_facts            | ASSIGNED_CARRIER_ID      | go_carrier_dimension          | Many-to-One       | Each shipment references a carrier           |
-| go_shipment_facts            | O_FACILITY_ID            | go_facility_dimension         | Many-to-One       | Each shipment references origin facility     |
-| go_shipment_facts            | D_FACILITY_ID            | go_facility_dimension         | Many-to-One       | Each shipment references destination facility|
-| go_shipment_facts            | SHIPMENT_STATUS          | go_shipment_status_codes      | Many-to-One       | Each shipment references a status code       |
-| go_carrier_dimension         | mode_of_transport        | go_transport_mode_codes       | Many-to-One       | Each carrier references a transport mode     |
-| go_shipment_daily_summary    | carrier_key              | go_carrier_dimension          | Many-to-One       | Daily summary references carrier             |
-| go_shipment_daily_summary    | facility_key             | go_facility_dimension         | Many-to-One       | Daily summary references facility            |
-| go_carrier_performance_monthly| carrier_key             | go_carrier_dimension          | Many-to-One       | Monthly summary references carrier           |
-| go_pipeline_audit            | pipeline_run_id          | go_data_validation_errors     | One-to-Many       | Audit run can have multiple errors           |
+| Source Table         | Key Field         | Target Table         | Relationship Type | Description                                  |
+|---------------------|-------------------|----------------------|-------------------|----------------------------------------------|
+| gd_shipment         | SHIPMENT_ID       | gd_audit             | One-to-Many       | Each shipment can have multiple audit logs   |
+| gd_shipment         | SHIPMENT_ID       | gd_shipment_error    | One-to-Many       | Each shipment can have multiple error logs   |
+| gd_audit            | execution_id      | gd_shipment          | Many-to-One       | Audit logs reference shipment executions     |
+| gd_shipment_error   | record_id         | gd_shipment          | Many-to-One       | Error logs reference shipment records        |
+| gd_shipment         | SHIPMENT_ID       | gd_shipment_cost_summary | One-to-One   | Shipment cost summary for each shipment     |
 
 ---
 
-## 5. ER Diagram Visualization Graph
+## 5. ER Diagram Visualization (Graphviz DOT)
 
-[ER Diagram]
-
-go_shipment_facts -- ASSIGNED_CARRIER_ID --> go_carrier_dimension
-
-go_shipment_facts -- O_FACILITY_ID --> go_facility_dimension
-
-go_shipment_facts -- D_FACILITY_ID --> go_facility_dimension
-
-go_shipment_facts -- SHIPMENT_STATUS --> go_shipment_status_codes
-
-go_carrier_dimension -- mode_of_transport --> go_transport_mode_codes
-
-go_shipment_daily_summary -- carrier_key --> go_carrier_dimension
-
-go_shipment_daily_summary -- facility_key --> go_facility_dimension
-
-go_carrier_performance_monthly -- carrier_key --> go_carrier_dimension
-
-go_pipeline_audit -- pipeline_run_id --> go_data_validation_errors
+```dot
+digraph G {
+  node [shape=box];
+  gd_shipment -> gd_audit [label="SHIPMENT_ID / execution_id"]; 
+  gd_shipment -> gd_shipment_error [label="SHIPMENT_ID / record_id"];
+  gd_audit -> gd_shipment [label="execution_id"];
+  gd_shipment_error -> gd_shipment [label="record_id"];
+  gd_shipment -> gd_shipment_cost_summary [label="SHIPMENT_ID"];
+}
+```
 
 ---
 
 ## 6. Design Decisions and Assumptions
 
 - All columns from Silver layer are retained in Gold layer for lineage and traceability.
-- Added `id` fields (BIGINT) as surrogate keys for all Gold tables.
-- Partitioned main fact table by `CREATED_DTTM` for query performance.
+- Added `id` fields (BIGINT) as surrogate keys for Gold tables.
+- Partitioned main table by `CREATED_DTTM` for query performance.
 - Error and audit tables are partitioned by timestamp fields.
 - No PK/FK constraints are enforced (Databricks/SparkSQL limitation).
 - All tables use Delta Lake format for ACID compliance and time travel.
 - Metadata columns (`load_date`, `update_date`, `source_system`) are included in all tables.
 - Data retention and archiving are managed via Databricks jobs and Delta features.
-- DDL scripts are compatible with Databricks Spark SQL.
-- No unsupported constraints (PK/FK/UNIQUE/IDENTITY) are included.
+- Aggregated tables are created for reporting and analytics use cases.
+- If logical model is missing, Silver model is used as the base for Gold model.
 
 ---
 
 ## 7. API Cost
 
-**apiCost**: 0.0847
+**apiCost**: 0.000000
 
 ---
 
