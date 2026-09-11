@@ -1,0 +1,205 @@
+_____________________________________________
+## *Author*: AAVA
+## *Created on*: 
+## *Description*: Data mapping for Bronze layer ingestion of SHIPMENT table from TMS Shipment Application
+## *Version*: 1
+## *Updated on*: 
+_____________________________________________
+
+# Databricks Bronze Model Data Mapping
+
+This document defines the mapping between the raw source SHIPMENT table and the Bronze layer in Databricks Lakehouse Medallion architecture. The Bronze layer retains the original structure and metadata with no transformation, ensuring compatibility with Delta Lake and PySpark.
+
+---
+
+## Data Mapping for Bronze Layer
+
+| Target Layer | Target Table | Target Field | Source Layer | Source Table | Source Field | Transformation Rule | Data Type |
+|--------------|-------------|--------------|--------------|--------------|--------------|---------------------|-----------|
+| Bronze       | SHIPMENT     | ACCESSORIAL_COST               | Source       | SHIPMENT     | ACCESSORIAL_COST               | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | ACCESSORIAL_COST_TO_CARRIER    | Source       | SHIPMENT     | ACCESSORIAL_COST_TO_CARRIER    | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | ACTUAL_COST                    | Source       | SHIPMENT     | ACTUAL_COST                    | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | ACTUAL_COST_CURRENCY_CODE      | Source       | SHIPMENT     | ACTUAL_COST_CURRENCY_CODE      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | APPT_DOOR_SCHED_TYPE           | Source       | SHIPMENT     | APPT_DOOR_SCHED_TYPE           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_BROKER_CARRIER_CODE   | Source       | SHIPMENT     | ASSIGNED_BROKER_CARRIER_CODE   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_BROKER_CARRIER_ID     | Source       | SHIPMENT     | ASSIGNED_BROKER_CARRIER_ID     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_CARRIER_CODE          | Source       | SHIPMENT     | ASSIGNED_CARRIER_CODE          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_CARRIER_ID            | Source       | SHIPMENT     | ASSIGNED_CARRIER_ID            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_CM_SHIPMENT_ID        | Source       | SHIPMENT     | ASSIGNED_CM_SHIPMENT_ID        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_CUSTOMER_ID           | Source       | SHIPMENT     | ASSIGNED_CUSTOMER_ID           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_EQUIPMENT_ID          | Source       | SHIPMENT     | ASSIGNED_EQUIPMENT_ID          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_LANE_DETAIL_ID        | Source       | SHIPMENT     | ASSIGNED_LANE_DETAIL_ID        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_LANE_ID               | Source       | SHIPMENT     | ASSIGNED_LANE_ID               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_MOT_ID                | Source       | SHIPMENT     | ASSIGNED_MOT_ID                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_SCNDR_CARRIER_CODE    | Source       | SHIPMENT     | ASSIGNED_SCNDR_CARRIER_CODE    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_SCNDR_CARRIER_ID      | Source       | SHIPMENT     | ASSIGNED_SCNDR_CARRIER_ID      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_SERVICE_LEVEL_ID      | Source       | SHIPMENT     | ASSIGNED_SERVICE_LEVEL_ID      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ASSIGNED_SHIP_VIA              | Source       | SHIPMENT     | ASSIGNED_SHIP_VIA              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | AUTH_NBR                       | Source       | SHIPMENT     | AUTH_NBR                       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | AVAILABLE_DTTM                 | Source       | SHIPMENT     | AVAILABLE_DTTM                 | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | BASELINE_COST                  | Source       | SHIPMENT     | BASELINE_COST                  | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | BASELINE_COST_CURRENCY_CODE    | Source       | SHIPMENT     | BASELINE_COST_CURRENCY_CODE    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_OF_LADING_NUMBER          | Source       | SHIPMENT     | BILL_OF_LADING_NUMBER          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_ADDRESS                | Source       | SHIPMENT     | BILL_TO_ADDRESS                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_CITY                   | Source       | SHIPMENT     | BILL_TO_CITY                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_CODE                   | Source       | SHIPMENT     | BILL_TO_CODE                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_COUNTRY_CODE           | Source       | SHIPMENT     | BILL_TO_COUNTRY_CODE           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_NAME                   | Source       | SHIPMENT     | BILL_TO_NAME                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_PHONE_NUMBER           | Source       | SHIPMENT     | BILL_TO_PHONE_NUMBER           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_POSTAL_CODE            | Source       | SHIPMENT     | BILL_TO_POSTAL_CODE            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_STATE_PROV             | Source       | SHIPMENT     | BILL_TO_STATE_PROV             | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILL_TO_TITLE                  | Source       | SHIPMENT     | BILL_TO_TITLE                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BILLING_METHOD                 | Source       | SHIPMENT     | BILLING_METHOD                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_ARRIVAL_DTTM                | Source       | SHIPMENT     | BK_ARRIVAL_DTTM                | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | BK_ARRIVAL_TZ                  | Source       | SHIPMENT     | BK_ARRIVAL_TZ                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_CUTOFF_DTTM                 | Source       | SHIPMENT     | BK_CUTOFF_DTTM                 | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | BK_CUTOFF_TZ                   | Source       | SHIPMENT     | BK_CUTOFF_TZ                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_D_FACILITY_ALIAS_ID         | Source       | SHIPMENT     | BK_D_FACILITY_ALIAS_ID         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_D_FACILITY_ID               | Source       | SHIPMENT     | BK_D_FACILITY_ID               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_DEPARTURE_DTTM              | Source       | SHIPMENT     | BK_DEPARTURE_DTTM              | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | BK_DEPARTURE_TZ                | Source       | SHIPMENT     | BK_DEPARTURE_TZ                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_FORWARDER_AIRWAY_BILL       | Source       | SHIPMENT     | BK_FORWARDER_AIRWAY_BILL       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_MASTER_AIRWAY_BILL          | Source       | SHIPMENT     | BK_MASTER_AIRWAY_BILL          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_O_FACILITY_ALIAS_ID         | Source       | SHIPMENT     | BK_O_FACILITY_ALIAS_ID         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_O_FACILITY_ID               | Source       | SHIPMENT     | BK_O_FACILITY_ID               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_PICKUP_DTTM                 | Source       | SHIPMENT     | BK_PICKUP_DTTM                 | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | BK_PICKUP_TZ                   | Source       | SHIPMENT     | BK_PICKUP_TZ                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_RESOURCE_NAME_EXTERNAL      | Source       | SHIPMENT     | BK_RESOURCE_NAME_EXTERNAL      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BK_RESOURCE_REF_EXTERNAL       | Source       | SHIPMENT     | BK_RESOURCE_REF_EXTERNAL       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BOOKING_ID                     | Source       | SHIPMENT     | BOOKING_ID                     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BOOKING_REF_CARRIER            | Source       | SHIPMENT     | BOOKING_REF_CARRIER            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BOOKING_REF_SHIPPER            | Source       | SHIPMENT     | BOOKING_REF_SHIPPER            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BROKER_CARRIER_ID              | Source       | SHIPMENT     | BROKER_CARRIER_ID              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BROKER_REF                     | Source       | SHIPMENT     | BROKER_REF                     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BUDG_CM_DISCOUNT               | Source       | SHIPMENT     | BUDG_CM_DISCOUNT               | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | BUDG_CURRENCY_CODE             | Source       | SHIPMENT     | BUDG_CURRENCY_CODE             | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BUDG_NORMALIZED_TOTAL_COST     | Source       | SHIPMENT     | BUDG_NORMALIZED_TOTAL_COST     | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | BUDG_TOTAL_COST                | Source       | SHIPMENT     | BUDG_TOTAL_COST                | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | BUSINESS_PARTNER_ID            | Source       | SHIPMENT     | BUSINESS_PARTNER_ID            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | BUSINESS_PROCESS               | Source       | SHIPMENT     | BUSINESS_PROCESS               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CARRIER_CHARGE                 | Source       | SHIPMENT     | CARRIER_CHARGE                 | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | CFMF_STATUS                    | Source       | SHIPMENT     | CFMF_STATUS                    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CM_DISCOUNT                    | Source       | SHIPMENT     | CM_DISCOUNT                    | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | CMID                           | Source       | SHIPMENT     | CMID                           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | COD_AMOUNT                     | Source       | SHIPMENT     | COD_AMOUNT                     | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | COD_CURRENCY_CODE              | Source       | SHIPMENT     | COD_CURRENCY_CODE              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | COMMODITY_CLASS                | Source       | SHIPMENT     | COMMODITY_CLASS                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | COMMODITY_CODE_ID              | Source       | SHIPMENT     | COMMODITY_CODE_ID              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CONFIG_CYCLE_SEQ               | Source       | SHIPMENT     | CONFIG_CYCLE_SEQ               | 1-1 Mapping          | INT           |
+| Bronze       | SHIPMENT     | CONS_ADDR_CODE                 | Source       | SHIPMENT     | CONS_ADDR_CODE                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CONS_LOCN_ID                   | Source       | SHIPMENT     | CONS_LOCN_ID                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CONS_RUN_ID                    | Source       | SHIPMENT     | CONS_RUN_ID                    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CONTRACT_NUMBER                | Source       | SHIPMENT     | CONTRACT_NUMBER                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | COST_BREAKUP                   | Source       | SHIPMENT     | COST_BREAKUP                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CREATED_DTTM                   | Source       | SHIPMENT     | CREATED_DTTM                   | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | CREATED_SOURCE                 | Source       | SHIPMENT     | CREATED_SOURCE                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CREATED_SOURCE_TYPE            | Source       | SHIPMENT     | CREATED_SOURCE_TYPE            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CREATION_TYPE                  | Source       | SHIPMENT     | CREATION_TYPE                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CURRENCY_CODE                  | Source       | SHIPMENT     | CURRENCY_CODE                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CURRENCY_DTTM                  | Source       | SHIPMENT     | CURRENCY_DTTM                  | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | CUST_FRGT_CHARGE               | Source       | SHIPMENT     | CUST_FRGT_CHARGE               | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | CUSTOMER_CREDIT_LIMIT_ID       | Source       | SHIPMENT     | CUSTOMER_CREDIT_LIMIT_ID       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CUSTOMER_ID                    | Source       | SHIPMENT     | CUSTOMER_ID                    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | CYCLE_DEADLINE_DTTM            | Source       | SHIPMENT     | CYCLE_DEADLINE_DTTM            | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | CYCLE_EXECUTION_DTTM           | Source       | SHIPMENT     | CYCLE_EXECUTION_DTTM           | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | CYCLE_RESP_DEADLINE_TZ         | Source       | SHIPMENT     | CYCLE_RESP_DEADLINE_TZ         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_ADDRESS                      | Source       | SHIPMENT     | D_ADDRESS                      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_CITY                         | Source       | SHIPMENT     | D_CITY                         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_COUNTRY_CODE                 | Source       | SHIPMENT     | D_COUNTRY_CODE                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_COUNTY                       | Source       | SHIPMENT     | D_COUNTY                       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_FACILITY_ID                  | Source       | SHIPMENT     | D_FACILITY_ID                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_FACILITY_NUMBER              | Source       | SHIPMENT     | D_FACILITY_NUMBER              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_POSTAL_CODE                  | Source       | SHIPMENT     | D_POSTAL_CODE                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_STATE_PROV                   | Source       | SHIPMENT     | D_STATE_PROV                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_STOP_LOCATION_NAME           | Source       | SHIPMENT     | D_STOP_LOCATION_NAME           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_TANDEM_FACILITY              | Source       | SHIPMENT     | D_TANDEM_FACILITY              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | D_TANDEM_FACILITY_ALIAS        | Source       | SHIPMENT     | D_TANDEM_FACILITY_ALIAS        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DAYS_TO_DELIVER                | Source       | SHIPMENT     | DAYS_TO_DELIVER                | 1-1 Mapping          | INT           |
+| Bronze       | SHIPMENT     | DECLARED_VALUE                 | Source       | SHIPMENT     | DECLARED_VALUE                 | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | DELAY_TYPE                     | Source       | SHIPMENT     | DELAY_TYPE                     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DELIVERY_END_DTTM              | Source       | SHIPMENT     | DELIVERY_END_DTTM              | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | DELIVERY_REQ                   | Source       | SHIPMENT     | DELIVERY_REQ                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DELIVERY_START_DTTM            | Source       | SHIPMENT     | DELIVERY_START_DTTM            | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | DELIVERY_TZ                    | Source       | SHIPMENT     | DELIVERY_TZ                    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DESIGNATED_DRIVER_TYPE         | Source       | SHIPMENT     | DESIGNATED_DRIVER_TYPE         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DESIGNATED_TRACTOR_CODE        | Source       | SHIPMENT     | DESIGNATED_TRACTOR_CODE        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DIRECT_DISTANCE                | Source       | SHIPMENT     | DIRECT_DISTANCE                | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | DISTANCE                       | Source       | SHIPMENT     | DISTANCE                       | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | DISTANCE_UOM                   | Source       | SHIPMENT     | DISTANCE_UOM                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DOOR                           | Source       | SHIPMENT     | DOOR                           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DRIVER_TYPE_ID                 | Source       | SHIPMENT     | DRIVER_TYPE_ID                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DROPOFF_PICKUP                 | Source       | SHIPMENT     | DROPOFF_PICKUP                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_CARRIER_CODE               | Source       | SHIPMENT     | DSG_CARRIER_CODE               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_CARRIER_ID                 | Source       | SHIPMENT     | DSG_CARRIER_ID                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_EQUIPMENT_ID               | Source       | SHIPMENT     | DSG_EQUIPMENT_ID               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_MOT_ID                     | Source       | SHIPMENT     | DSG_MOT_ID                     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_SCNDR_CARRIER_CODE         | Source       | SHIPMENT     | DSG_SCNDR_CARRIER_CODE         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_SCNDR_CARRIER_ID           | Source       | SHIPMENT     | DSG_SCNDR_CARRIER_ID           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_SERVICE_LEVEL_ID           | Source       | SHIPMENT     | DSG_SERVICE_LEVEL_ID           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DSG_VOYAGE_FLIGHT              | Source       | SHIPMENT     | DSG_VOYAGE_FLIGHT              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DT_PARAM_SET_ID                | Source       | SHIPMENT     | DT_PARAM_SET_ID                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | DV_CURRENCY_CODE               | Source       | SHIPMENT     | DV_CURRENCY_CODE               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | EARNED_INCOME                  | Source       | SHIPMENT     | EARNED_INCOME                  | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | EARNED_INCOME_CURRENCY_CODE    | Source       | SHIPMENT     | EARNED_INCOME_CURRENCY_CODE    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | EQUIP_UTIL_PER                 | Source       | SHIPMENT     | EQUIP_UTIL_PER                 | 1-1 Mapping          | DECIMAL(5,2)  |
+| Bronze       | SHIPMENT     | EQUIPMENT_TYPE                 | Source       | SHIPMENT     | EQUIPMENT_TYPE                 | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | ESTIMATED_COST                 | Source       | SHIPMENT     | ESTIMATED_COST                 | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | ESTIMATED_DISPATCH_DTTM        | Source       | SHIPMENT     | ESTIMATED_DISPATCH_DTTM        | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | ESTIMATED_SAVINGS              | Source       | SHIPMENT     | ESTIMATED_SAVINGS              | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | EVENT_IND_TYPEID               | Source       | SHIPMENT     | EVENT_IND_TYPEID               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | EXT_SYS_SHIPMENT_ID            | Source       | SHIPMENT     | EXT_SYS_SHIPMENT_ID            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | EXTRACTION_DTTM                | Source       | SHIPMENT     | EXTRACTION_DTTM                | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | FACILITY_SCHEDULE_ID           | Source       | SHIPMENT     | FACILITY_SCHEDULE_ID           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_CARRIER_CODE          | Source       | SHIPMENT     | FEASIBLE_CARRIER_CODE          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_CARRIER_ID            | Source       | SHIPMENT     | FEASIBLE_CARRIER_ID            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_DRIVER_TYPE           | Source       | SHIPMENT     | FEASIBLE_DRIVER_TYPE           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_EQUIPMENT_ID          | Source       | SHIPMENT     | FEASIBLE_EQUIPMENT_ID          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_EQUIPMENT2_ID         | Source       | SHIPMENT     | FEASIBLE_EQUIPMENT2_ID         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_MOT_ID                | Source       | SHIPMENT     | FEASIBLE_MOT_ID                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_SERVICE_LEVEL_ID      | Source       | SHIPMENT     | FEASIBLE_SERVICE_LEVEL_ID      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FEASIBLE_VOYAGE_FLIGHT         | Source       | SHIPMENT     | FEASIBLE_VOYAGE_FLIGHT         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FINANCIAL_WT                   | Source       | SHIPMENT     | FINANCIAL_WT                   | 1-1 Mapping          | DECIMAL(10,3) |
+| Bronze       | SHIPMENT     | FIRST_UPDATE_SENT_TO_PKMS      | Source       | SHIPMENT     | FIRST_UPDATE_SENT_TO_PKMS      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FRT_REV_ACCESSORIAL_CHARGE     | Source       | SHIPMENT     | FRT_REV_ACCESSORIAL_CHARGE     | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | FRT_REV_CM_DISCOUNT            | Source       | SHIPMENT     | FRT_REV_CM_DISCOUNT            | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | FRT_REV_LINEHAUL_CHARGE        | Source       | SHIPMENT     | FRT_REV_LINEHAUL_CHARGE        | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | FRT_REV_RATING_LANE_DETAIL_ID  | Source       | SHIPMENT     | FRT_REV_RATING_LANE_DETAIL_ID  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FRT_REV_RATING_LANE_ID         | Source       | SHIPMENT     | FRT_REV_RATING_LANE_ID         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FRT_REV_SPOT_CHARGE            | Source       | SHIPMENT     | FRT_REV_SPOT_CHARGE            | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | FRT_REV_SPOT_CHARGE_CURR_CODE  | Source       | SHIPMENT     | FRT_REV_SPOT_CHARGE_CURR_CODE  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | FRT_REV_STOP_CHARGE            | Source       | SHIPMENT     | FRT_REV_STOP_CHARGE            | 1-1 Mapping          | DECIMAL(10,2) |
+| Bronze       | SHIPMENT     | GRS_MAX_SHIPMENT_STATUS        | Source       | SHIPMENT     | GRS_MAX_SHIPMENT_STATUS        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_ALERTS                     | Source       | SHIPMENT     | HAS_ALERTS                     | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_EM_NOTIFY_FLAG             | Source       | SHIPMENT     | HAS_EM_NOTIFY_FLAG             | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_IMPORT_ERROR               | Source       | SHIPMENT     | HAS_IMPORT_ERROR               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_NOTES                      | Source       | SHIPMENT     | HAS_NOTES                      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_SOFT_CHECK_ERROR           | Source       | SHIPMENT     | HAS_SOFT_CHECK_ERROR           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAS_TRACKING_MSG               | Source       | SHIPMENT     | HAS_TRACKING_MSG               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAULING_CARRIER                | Source       | SHIPMENT     | HAULING_CARRIER                | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAZMAT_CERT_CONTACT            | Source       | SHIPMENT     | HAZMAT_CERT_CONTACT            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HAZMAT_CERT_DECLARATION        | Source       | SHIPMENT     | HAZMAT_CERT_DECLARATION        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | HIBERNATE_VERSION              | Source       | SHIPMENT     | HIBERNATE_VERSION              | 1-1 Mapping          | INT           |
+| Bronze       | SHIPMENT     | HUB_ID                         | Source       | SHIPMENT     | HUB_ID                         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | INBOUND_REGION_ID              | Source       | SHIPMENT     | INBOUND_REGION_ID              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | INCOTERM_ID                    | Source       | SHIPMENT     | INCOTERM_ID                    | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | INSURANCE_STATUS               | Source       | SHIPMENT     | INSURANCE_STATUS               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_ASSOCIATED_TO_OUTBOUND      | Source       | SHIPMENT     | IS_ASSOCIATED_TO_OUTBOUND      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_AUTO_DELIVERED              | Source       | SHIPMENT     | IS_AUTO_DELIVERED              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_BOOKING_REQUIRED            | Source       | SHIPMENT     | IS_BOOKING_REQUIRED            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_CM_OPTION_GEN_ACTIVE        | Source       | SHIPMENT     | IS_CM_OPTION_GEN_ACTIVE        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_COOLER_AT_NOSE              | Source       | SHIPMENT     | IS_COOLER_AT_NOSE              | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_FILO                        | Source       | SHIPMENT     | IS_FILO                        | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_GRS_OPT_CYCLE_RUNNING       | Source       | SHIPMENT     | IS_GRS_OPT_CYCLE_RUNNING       | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_HAZMAT                      | Source       | SHIPMENT     | IS_HAZMAT                      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_MANUAL_ASSIGN               | Source       | SHIPMENT     | IS_MANUAL_ASSIGN               | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_MISROUTED                   | Source       | SHIPMENT     | IS_MISROUTED                   | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_PERISHABLE                  | Source       | SHIPMENT     | IS_PERISHABLE                  | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_SHIPMENT_CANCELLED          | Source       | SHIPMENT     | IS_SHIPMENT_CANCELLED          | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_SHIPMENT_RECONCILED         | Source       | SHIPMENT     | IS_SHIPMENT_RECONCILED         | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_TIME_FEAS_ENABLED           | Source       | SHIPMENT     | IS_TIME_FEAS_ENABLED           | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | IS_WAVE_MAN_CHANGED            | Source       | SHIPMENT     | IS_WAVE_MAN_CHANGED            | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | LANE_NAME                      | Source       | SHIPMENT     | LANE_NAME                      | 1-1 Mapping          | STRING        |
+| Bronze       | SHIPMENT     | LAST_CM_OPTION_GEN_DTTM        | Source       | SHIPMENT     | LAST_CM_OPTION_GEN_DTTM        | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | LAST_RS_NOTIFICATION_DTTM      | Source       | SHIPMENT     | LAST_RS_NOTIFICATION_DTTM      | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | LAST_RUN_GRS_DTTM              | Source       | SHIPMENT     | LAST_RUN_GRS_DTTM              | 1-1 Mapping          | TIMESTAMP     |
+| Bronze       | SHIPMENT     | LAST_SELECTOR_RUN_DTTM         | Source       | SHIPMENT     | LAST_SELECTOR_RUN_DTTM         | 1-1 Mapping          | TIMESTAMP
