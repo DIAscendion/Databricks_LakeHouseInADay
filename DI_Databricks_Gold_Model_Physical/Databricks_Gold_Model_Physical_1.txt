@@ -1,0 +1,326 @@
+_____________________________________________
+## *Author*: AAVA
+## *Created on*:   
+## *Description*:   Physical Data Model and DDL Scripts for Databricks Gold Layer (Shipment Domain)
+## *Version*: 1 
+## *Updated on*: 
+_____________________________________________
+
+# Databricks Gold Model Physical: Shipment Domain
+
+This document defines the physical data model for the Gold layer of the Databricks Lakehouse, focusing on the SHIPMENT process and related entities. The model is designed for aggregated, dimensional, and fact data, with robust audit and error tracking, using Delta Lake tables compatible with Databricks SQL and PySpark.
+
+---
+
+# Gold Layer DDL Scripts
+
+## 1. GO_SHIPMENT_FACT Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_shipment_fact (
+  shipment_fact_id STRING,
+  shipment_reference_number STRING,
+  shipment_status STRING,
+  shipment_type STRING,
+  leg_type STRING,
+  creation_date DATE,
+  creation_source STRING,
+  creator_role STRING,
+  cancelled_flag BOOLEAN,
+  reconciled_flag BOOLEAN,
+  trailer_number STRING,
+  company_identifier STRING,
+  parent_shipment_reference STRING,
+  origin_facility_name STRING,
+  destination_facility_name STRING,
+  route_reference STRING,
+  bill_of_lading_number STRING,
+  business_partner_identifier STRING,
+  mode_of_transport STRING,
+  total_route_distance DECIMAL(10,2),
+  direct_distance DECIMAL(10,2),
+  out_of_route_distance DECIMAL(10,2),
+  distance_unit_of_measure STRING,
+  number_of_stops INT,
+  equipment_type STRING,
+  bill_to_postal_code STRING,
+  bill_to_state_province STRING,
+  billing_method STRING,
+  purchase_order_reference STRING,
+  reconciliation_date DATE,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (shipment_status, shipment_type);
+```
+
+---
+
+## 2. GO_CARRIER_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_carrier_dim (
+  carrier_dim_id STRING,
+  primary_carrier_name STRING,
+  secondary_carrier_name STRING,
+  broker_carrier_name STRING,
+  designated_carrier_name STRING,
+  feasible_carrier_name STRING,
+  mode_of_transport STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (primary_carrier_name);
+```
+
+---
+
+## 3. GO_FACILITY_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_facility_dim (
+  facility_dim_id STRING,
+  facility_name STRING,
+  address STRING,
+  city STRING,
+  state STRING,
+  postal_code STRING,
+  country STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (facility_name);
+```
+
+---
+
+## 4. GO_ROUTE_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_route_dim (
+  route_dim_id STRING,
+  route_reference STRING,
+  total_route_distance DECIMAL(10,2),
+  direct_distance DECIMAL(10,2),
+  out_of_route_distance DECIMAL(10,2),
+  distance_unit_of_measure STRING,
+  number_of_stops INT,
+  equipment_type STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (route_reference);
+```
+
+---
+
+## 5. GO_BILLING_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_billing_dim (
+  billing_dim_id STRING,
+  bill_of_lading_number STRING,
+  billing_method STRING,
+  purchase_order_reference STRING,
+  bill_to_postal_code STRING,
+  bill_to_state_province STRING,
+  reconciliation_date DATE,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (bill_of_lading_number);
+```
+
+---
+
+## 6. GO_BUSINESS_PARTNER_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_business_partner_dim (
+  business_partner_dim_id STRING,
+  business_partner_identifier STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (business_partner_identifier);
+```
+
+---
+
+## 7. GO_USER_DIM Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_user_dim (
+  user_dim_id STRING,
+  creator_role STRING,
+  creation_source_type STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (creator_role);
+```
+
+---
+
+## 8. GO_PROCESS_AUDIT Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_process_audit (
+  process_audit_id STRING,
+  process_name STRING,
+  execution_start_time TIMESTAMP,
+  execution_end_time TIMESTAMP,
+  status STRING,
+  record_count INT,
+  error_count INT,
+  source_system STRING,
+  load_date TIMESTAMP
+)
+USING DELTA;
+```
+
+---
+
+## 9. GO_ERROR_DATA Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_error_data (
+  error_data_id STRING,
+  error_type STRING,
+  error_description STRING,
+  error_source STRING,
+  error_timestamp TIMESTAMP,
+  record_reference STRING,
+  process_name STRING,
+  load_date TIMESTAMP
+)
+USING DELTA;
+```
+
+---
+
+## 10. GO_SHIPMENT_AGG Table
+
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_shipment_agg (
+  shipment_agg_id STRING,
+  shipment_status STRING,
+  shipment_type STRING,
+  mode_of_transport STRING,
+  carrier_name STRING,
+  origin_facility_name STRING,
+  destination_facility_name STRING,
+  total_shipment_count INT,
+  cancelled_shipment_percent DECIMAL(5,2),
+  reconciled_shipment_percent DECIMAL(5,2),
+  broker_carrier_usage_percent DECIMAL(5,2),
+  on_time_pickup_percent DECIMAL(5,2),
+  out_of_route_distance_percent DECIMAL(5,2),
+  average_stops_per_shipment DECIMAL(5,2),
+  route_efficiency_index DECIMAL(5,2),
+  unreconciled_shipment_count_with_aging STRING,
+  creation_volume_trend STRING,
+  source_mix_percent DECIMAL(5,2),
+  load_date TIMESTAMP
+)
+USING DELTA
+PARTITIONED BY (shipment_status, shipment_type);
+```
+
+---
+
+## 11. Update DDL Script Example
+
+```sql
+-- Example: Add a new column for shipment_priority
+ALTER TABLE gold.go_shipment_fact ADD COLUMNS (shipment_priority STRING);
+```
+
+---
+
+# Data Retention Policies
+
+## Retention Periods for Gold Layer
+- **Active Data:** 3 years from load_date
+- **Error/Audit Data:** 5 years from load_date
+
+## Archiving Strategies
+- Data older than retention period is moved to a separate archival storage (e.g., Azure Data Lake archival zone or S3 Glacier)
+- Use Databricks OPTIMIZE and VACUUM commands for Delta tables to manage storage and performance
+- Error and audit logs are periodically exported to long-term storage for compliance
+
+---
+
+# Conceptual Data Model Diagram (Tabular Form)
+
+| Source Table           | Relationship Key Field   | Target Table         | Relationship Type |
+|-----------------------|-------------------------|--------------------- |-------------------|
+| go_shipment_fact      | primary_carrier_name    | go_carrier_dim       | Many-to-One       |
+| go_shipment_fact      | secondary_carrier_name  | go_carrier_dim       | Many-to-One       |
+| go_shipment_fact      | broker_carrier_name     | go_carrier_dim       | Many-to-One       |
+| go_shipment_fact      | designated_carrier_name | go_carrier_dim       | Many-to-One       |
+| go_shipment_fact      | feasible_carrier_name   | go_carrier_dim       | Many-to-One       |
+| go_shipment_fact      | origin_facility_name    | go_facility_dim      | Many-to-One       |
+| go_shipment_fact      | destination_facility_name| go_facility_dim     | Many-to-One       |
+| go_shipment_fact      | route_reference         | go_route_dim         | One-to-One        |
+| go_shipment_fact      | bill_of_lading_number   | go_billing_dim       | One-to-One        |
+| go_shipment_fact      | business_partner_identifier| go_business_partner_dim| Many-to-One   |
+| go_shipment_fact      | creator_role            | go_user_dim          | Many-to-One       |
+| go_shipment_fact      | parent_shipment_reference| go_shipment_fact    | One-to-One        |
+
+---
+
+# ER Diagram Visualization Graph
+
+```
+[go_shipment_fact]--(primary_carrier_name)-->[go_carrier_dim]
+[go_shipment_fact]--(secondary_carrier_name)-->[go_carrier_dim]
+[go_shipment_fact]--(broker_carrier_name)-->[go_carrier_dim]
+[go_shipment_fact]--(designated_carrier_name)-->[go_carrier_dim]
+[go_shipment_fact]--(feasible_carrier_name)-->[go_carrier_dim]
+[go_shipment_fact]--(origin_facility_name)-->[go_facility_dim]
+[go_shipment_fact]--(destination_facility_name)-->[go_facility_dim]
+[go_shipment_fact]--(route_reference)-->[go_route_dim]
+[go_shipment_fact]--(bill_of_lading_number)-->[go_billing_dim]
+[go_shipment_fact]--(business_partner_identifier)-->[go_business_partner_dim]
+[go_shipment_fact]--(creator_role)-->[go_user_dim]
+[go_shipment_fact]--(parent_shipment_reference)-->[go_shipment_fact]
+```
+
+---
+
+# Assumptions and Design Decisions
+- All id fields (e.g., *_id) are added as STRING and are expected to be generated as UUIDs or similar.
+- No PK/FK/constraints are enforced in DDL (Databricks/SparkSQL limitation).
+- Partitioning is chosen on business-relevant columns for performance.
+- All tables use Delta Lake format for ACID compliance and time travel.
+- Metadata columns (load_date, update_date, source_system) are included in all tables.
+- Error and audit tables are included for robust data governance.
+- Update DDL script section is provided for future schema changes.
+- Data retention and archiving strategies are documented for compliance.
+- All columns from Silver layer are included in Gold layer tables as required.
+- Data types are chosen for Databricks SparkSQL compatibility.
+
+---
+
+# apiCost
+apiCost: 0.000400
+
+---
+
+outputURL: https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Gold_Model_Physical
+pipelineID: 12372
