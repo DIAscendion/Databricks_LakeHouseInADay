@@ -1,0 +1,88 @@
+Analytical Reporting Requirements for Store360 Inventory Perspective
+(Store Network Inventory Performance & Product Findability Monitoring)
+
+Following are the reporting requirements for the Store360 Inventory Perspective initiative to monitor inventory health, athlete product findability, RFID effectiveness, replenishment efficiency, and fulfillment performance across the store network.
+
+1. Store360 Inventory Health Scorecard (Daily / Weekly)
+
+Objectives of the Report:
+Provide a unified inventory health view across all stores to measure inventory accuracy, stock availability, search success, fulfillment readiness, and athlete product findability.
+
+KPIs and Metrics:
+- Inventory Accuracy %
+- On-Hand Units
+- Stockout Rate %
+- Zero-Result Search %
+- Average Locate Time
+- Walk-In Conversion %
+- RFID Cycle Count Coverage %
+- Available Inventory %
+
+2. Athlete Product Findability Report
+
+Objectives:
+Measure how effectively athletes locate desired products through search, scan, and assisted inventory visibility.
+
+KPIs:
+- Nearby Store Stock Display %
+- Product Discovery by Scan %
+- Product Discovery by Catalog Search %
+- Zero Result Search %
+- Search Success Rate %
+- Walk-In Conversion %
+
+3. RFID Inventory Effectiveness Report
+
+Objectives:
+Track RFID cycle count execution and inventory accuracy performance.
+
+KPIs:
+- RFID Cycle Count Coverage %
+- Inventory Accuracy %
+- Cycle Count Completion %
+- Inventory Variance Units
+- Inventory Variance %
+
+4. Fulfillment Inventory Readiness Report
+
+Objectives:
+Measure inventory readiness supporting BOPIS, SDD, and customer fulfillment activities.
+
+KPIs:
+- Pick UPH
+- Available-to-Sell Units
+- Inventory Readiness %
+- Fill Rate %
+- Fulfillment Success Rate %
+
+5. Store Inventory Performance Report
+
+KPIs:
+- Inventory Accuracy %
+- Stockout Rate %
+- Average Locate Time
+- Walk-In Conversion %
+- RFID Accuracy %
+
+6. Category Inventory Health Report
+
+KPIs:
+- Category Availability %
+- Category Stockout Rate %
+- Inventory Health Score
+- Inventory Accuracy %
+
+Conceptual Entities:
+Store
+Region
+Product
+Category
+Inventory
+InventorySnapshot
+RFIDEvent
+FulfillmentOrder
+SearchEvent
+AthleteInteraction
+Date
+
+END OF DOCUMENT

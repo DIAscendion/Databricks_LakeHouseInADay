@@ -1,0 +1,329 @@
+============================================================
+DSG STORES — TRANSACTIONAL SOURCE SCHEMA (ER-STYLE)
+File Name: DSG_Stores_Full_Process_Tables.txt
+Purpose : Operational transactional schema for DSG Stores.
+============================================================
+
+3.1 REGION
+Description : Enterprise region hierarchy.
+Primary Key : region_id
+Columns:
+ - region_id (PK)
+ - region_name
+ - vp_name
+ - is_active
+ - created_ts
+ - updated_ts
+
+3.2 DISTRICT
+Description : District hierarchy.
+Primary Key : district_id
+Foreign Keys:
+ - region_id -> REGION.region_id
+Columns:
+ - district_id (PK)
+ - region_id (FK)
+ - district_name
+ - district_manager
+ - is_active
+ - created_ts
+ - updated_ts
+
+3.3 STORE
+Description : Store master.
+Primary Key : store_id
+Foreign Keys:
+ - district_id -> DISTRICT.district_id
+Columns:
+ - store_id (PK)
+ - store_number
+ - store_name
+ - district_id (FK)
+ - fieldhouse_type
+ - open_date
+ - close_date
+ - address
+ - city
+ - state
+ - postal_code
+ - is_active
+ - created_ts
+ - updated_ts
+
+3.4 ATHLETE
+Primary Key : athlete_id
+Columns:
+ - athlete_id (PK)
+ - master_account_id
+ - loyalty_flag
+ - gold_flag
+ - first_purchase_date
+ - last_purchase_date
+ - omni_channel_flag
+ - created_ts
+ - updated_ts
+
+3.5 ATHLETE_PROFILE
+Primary Key : athlete_profile_id
+Foreign Keys:
+ - athlete_id -> ATHLETE.athlete_id
+Columns:
+ - athlete_profile_id (PK)
+ - athlete_id (FK)
+ - preferred_store_id (FK)
+ - persona
+ - micro_cohort
+ - email
+ - created_ts
+ - updated_ts
+
+3.6 PRODUCT
+Primary Key : product_id
+Columns:
+ - product_id (PK)
+ - sku
+ - upc
+ - style_number
+ - brand
+ - department_description
+ - vendor_name
+ - created_ts
+ - updated_ts
+
+3.7 PRODUCT_HIERARCHY
+Primary Key : hierarchy_id
+Foreign Keys:
+ - product_id -> PRODUCT.product_id
+Columns:
+ - hierarchy_id (PK)
+ - product_id (FK)
+ - division
+ - department
+ - class
+ - subclass
+
+4. INVENTORY_BALANCE
+Description : Daily inventory position.
+Primary Key : inventory_balance_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - inventory_balance_id (PK)
+ - store_id (FK)
+ - product_id (FK)
+ - inventory_date
+ - on_hand_qty
+ - available_qty
+ - allocated_qty
+ - damaged_qty
+ - last_update_ts
+
+4.2 INVENTORY_ADJUSTMENT
+Primary Key : adjustment_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - adjustment_id (PK)
+ - store_id (FK)
+ - product_id (FK)
+ - adjustment_reason
+ - adjustment_qty
+ - adjustment_ts
+
+4.3 INVENTORY_REPLENISHMENT
+Primary Key : replenishment_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - replenishment_id (PK)
+ - store_id (FK)
+ - product_id (FK)
+ - requested_qty
+ - replenished_qty
+ - replenishment_ts
+
+5. RFID_EVENT
+Primary Key : rfid_event_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - rfid_event_id (PK)
+ - store_id (FK)
+ - product_id (FK)
+ - scan_ts
+ - total_on_hand
+ - cycle_count_delta
+ - store_available_on_hand
+
+5.2 RFID_CYCLE_COUNT
+Primary Key : cycle_count_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+Columns:
+ - cycle_count_id (PK)
+ - store_id (FK)
+ - count_date
+ - completion_pct
+ - variance_pct
+
+6. SALES_TRANSACTION
+Primary Key : transaction_id
+Foreign Keys:
+ - athlete_id -> ATHLETE.athlete_id
+ - store_id -> STORE.store_id
+Columns:
+ - transaction_id (PK)
+ - athlete_id (FK)
+ - store_id (FK)
+ - transaction_ts
+ - total_sales_amount
+ - sales_channel
+
+6.2 SALES_TRANSACTION_LINE
+Primary Key : transaction_line_id
+Foreign Keys:
+ - transaction_id -> SALES_TRANSACTION.transaction_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - transaction_line_id (PK)
+ - transaction_id (FK)
+ - product_id (FK)
+ - quantity
+ - net_sale_price
+ - cost_amount
+
+7. FULFILLMENT_REQUEST
+Primary Key : fulfillment_request_id
+Foreign Keys:
+ - athlete_id -> ATHLETE.athlete_id
+ - store_id -> STORE.store_id
+Columns:
+ - fulfillment_request_id (PK)
+ - athlete_id (FK)
+ - store_id (FK)
+ - request_type
+ - request_status
+ - created_ts
+ - completed_ts
+
+7.2 FULFILLMENT_REQUEST_UNIT
+Primary Key : fr_unit_id
+Foreign Keys:
+ - fulfillment_request_id -> FULFILLMENT_REQUEST.fulfillment_request_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - fr_unit_id (PK)
+ - fulfillment_request_id (FK)
+ - product_id (FK)
+ - requested_qty
+ - picked_qty
+ - declined_qty
+
+7.3 TASK
+Primary Key : task_id
+Columns:
+ - task_id (PK)
+ - task_type_cd
+ - store_id
+ - assigned_employee_id
+ - task_status
+
+8. SEARCH_EVENT
+Primary Key : search_event_id
+Foreign Keys:
+ - athlete_id -> ATHLETE.athlete_id
+ - store_id -> STORE.store_id
+Columns:
+ - search_event_id (PK)
+ - athlete_id (FK)
+ - store_id (FK)
+ - search_phrase
+ - results_count
+ - search_ts
+
+8.2 PRODUCT_VIEW_EVENT
+Primary Key : product_view_id
+Foreign Keys:
+ - athlete_id -> ATHLETE.athlete_id
+ - product_id -> PRODUCT.product_id
+Columns:
+ - product_view_id (PK)
+ - athlete_id (FK)
+ - product_id (FK)
+ - finding_method
+ - event_ts
+
+9. EMPLOYEE
+Primary Key : employee_id
+Foreign Keys:
+ - store_id -> STORE.store_id
+Columns:
+ - employee_id (PK)
+ - store_id (FK)
+ - employee_role
+ - hire_date
+ - status
+
+9.2 LABOR_TIMECARD
+Primary Key : timecard_id
+Foreign Keys:
+ - employee_id -> EMPLOYEE.employee_id
+Columns:
+ - timecard_id (PK)
+ - employee_id (FK)
+ - work_date
+ - scheduled_hours
+ - worked_hours
+ - overtime_hours
+
+10. SHIPMENT
+Primary Key : shipment_id
+Foreign Keys:
+ - origin_store_id -> STORE.store_id
+ - destination_store_id -> STORE.store_id
+Columns:
+ - shipment_id (PK)
+ - tc_shipment_id
+ - origin_store_id (FK)
+ - destination_store_id (FK)
+ - shipment_status
+ - shipment_type
+ - total_cost
+ - shipment_start_dttm
+ - shipment_end_dttm
+
+10.2 SHIPMENT_EVENT
+Primary Key : shipment_event_id
+Foreign Keys:
+ - shipment_id -> SHIPMENT.shipment_id
+Columns:
+ - shipment_event_id (PK)
+ - shipment_id (FK)
+ - event_type
+ - event_ts
+ - location
+
+11. FACT SOURCES
+FACT_INVENTORY_HEALTH
+FACT_PRODUCT_FINDABILITY
+FACT_RFID
+FACT_FULFILLMENT
+FACT_STORE_PERFORMANCE
+FACT_SALES
+FACT_LABOR
+FACT_SHIPMENT
+
+12. DATA QUALITY RULES
+- Store must exist before inventory, sales, labor and shipment records.
+- Product must exist before inventory or sales records.
+- available_qty <= on_hand_qty.
+- Inventory quantities must be non-negative.
+- Shipment IDs must be unique.
+- Athlete IDs must be unique.
+============================================================
+END OF FILE
+============================================================
