@@ -1,0 +1,306 @@
+ASCHEAVYRENTALS — MEDALLION ARCHITECTURE
+TABLE SCHEMAS (BRONZE / SILVER / GOLD)
+================================================================
+Required columns for every table in the Bronze, Silver, and Gold layers.
+
+1. BRONZE LAYER — raw ingestion
+----------------------------------------------------------------
+
+bronze.purchase_order
+  Source: /Performance Standards/Purchase Order
+  Grain: 1 row per PO line
+  Columns:
+    - po_number          Purchase order number
+    - po_date            Date PO was issued
+    - vendor_id          Vendor identifier
+    - equipment_id       Equipment unit purchased
+    - equipment_class    Equipment class/type
+    - cost_amount        PO line cost amount
+    - status             Open / Received
+    - received_date      Date equipment was received
+
+bronze.ar_by_sales_rep_weekly
+  Source: /Finance/AR/AR Reports by Sales Rep - WEEKLY
+  Grain: 1 row per sales rep per week
+  Columns:
+    - week_ending        Week-ending date
+    - sales_rep_id       Sales rep identifier
+    - region              Region name
+    - revenue_amount     Revenue booked that week
+    - contract_count     Contracts opened that week
+    - ar_balance         Outstanding AR balance
+
+bronze.ar_reports
+  Source: /Finance/AR/AR Reports
+  Grain: 1 row per invoice/AR transaction
+  Columns:
+    - invoice_id         Invoice identifier
+    - customer_id        Customer identifier
+    - invoice_date       Date invoiced
+    - due_date           Payment due date
+    - paid_date          Date paid (null if open)
+    - invoice_amount     Total invoice amount
+    - open_balance       Remaining unpaid balance
+    - aging_bucket       Aging category (Current, 1-30, 31-60, 61-90+)
+
+bronze.bulk_lot_report
+  Source: /Fleet/Bulk Lot Report
+  Grain: 1 row per equipment unit, as-of snapshot
+  Columns:
+    - equipment_id       Equipment unit identifier
+    - equipment_class    Equipment class/type
+    - segment            General Tool / Specialty
+    - region              Region name
+    - original_cost      Original cost (OEC)
+    - acquisition_date   Date acquired
+    - status             Owned / On-rent / Idle
+
+bronze.equipment_disposals
+  Source: /Miscellaneous/Equipment Disposals
+  Grain: 1 row per disposal transaction
+  Columns:
+    - equipment_id       Equipment unit disposed
+    - disposal_date      Date disposed
+    - original_cost      Original cost of the unit
+    - book_value         Net book value at disposal
+    - sale_proceeds      Cash proceeds from sale
+    - disposal_method    Auction / Wholesale / Retail sale
+
+bronze.gl_detail_asset
+  Source: /Finance/Fixed Assets/GL Detail - Asset
+  Grain: 1 row per GL asset transaction
+  Columns:
+    - gl_line_id         GL line identifier
+    - date               Transaction date
+    - equipment_id       Related equipment unit
+    - account            GL account name
+    - transaction_type   Depreciation / Capex / Disposal / Refurb Capex
+    - amount             Transaction amount
+
+bronze.gl_detail_datalake
+  Source: /Finance/Fixed Assets/GL Detail - Data Lake
+  Grain: 1 row per GL line
+  Columns:
+    - gl_line_id         GL line identifier
+    - date               Transaction date
+    - account            GL account name
+    - department         Owning department/cost center
+    - amount             Transaction amount
+    - pl_line_mapped     Target management P&L line
+
+bronze.invoice_detail_master
+  Source: /Sales/Invoices/Invoice Detail - Master Account
+  Grain: 1 row per invoice line
+  Columns:
+    - invoice_line_id    Invoice line identifier
+    - invoice_date       Date invoiced
+    - customer_id        Customer identifier
+    - revenue_type       owned_rental / re_rent / ancillary / used_sale / new_sale
+    - segment            General Tool / Specialty (rental lines only)
+    - region              Region name
+    - rate               Daily/period rental rate (rental lines only)
+    - time_on_rent_days  Days on rent (rental lines only)
+    - amount             Line amount
+
+bronze.rental_contracts_by_rep
+  Source: /Sales/Rental Contracts Opened by Sales Rep
+  Grain: 1 row per contract opened
+  Columns:
+    - contract_id            Contract identifier
+    - open_date              Date contract opened
+    - sales_rep_id           Sales rep identifier
+    - equipment_class        Equipment class/type
+    - rate_realization_pct   Rate realization vs list rate
+    - time_on_rent_days      Time on rent for the contract
+    - region                  Region name
+
+bronze.ap_vendor_rpt
+  Source: /Finance/AP/AP_VendorRpt
+  Grain: 1 row per AP transaction
+  Columns:
+    - ap_id               AP transaction identifier
+    - vendor_id           Vendor identifier
+    - invoice_date        Vendor invoice date
+    - amount              Transaction amount
+    - category            Equipment purchase / Parts & maintenance / Freight & delivery
+    - paid_flag           Paid / Open
+
+2. SILVER LAYER — cleaned facts & dimensions
+----------------------------------------------------------------
+
+silver.dim_equipment
+  Grain: 1 row per equipment unit
+  Columns:
+    - equipment_id        Equipment unit identifier (business key)
+    - equipment_class     Equipment class/type
+    - segment             General Tool / Specialty
+    - acquisition_date    Date acquired
+    - useful_life_years   Depreciable useful life
+
+silver.dim_region
+  Grain: 1 row per region
+  Columns:
+    - region_id           Region identifier (business key)
+    - region_name         Region display name
+
+silver.dim_date
+  Grain: 1 row per calendar date (fiscal calendar)
+  Columns:
+    - calendar_date       Calendar date
+    - fiscal_year         Fiscal year
+    - fiscal_month        Fiscal month number
+    - month_end_flag      True if this date is a month-end
+
+silver.dim_sales_rep
+  Grain: 1 row per sales rep
+  Columns:
+    - sales_rep_id        Sales rep identifier (business key)
+    - region_id           Assigned region
+
+silver.fact_fleet_oec_daily
+  Grain: equipment_id x date
+  Columns:
+    - equipment_id        Equipment unit identifier
+    - date                Snapshot date
+    - segment             General Tool / Specialty
+    - region_id           Region identifier
+    - original_cost       Original cost (OEC) as of date
+    - month_end_flag      True if date is a month-end snapshot
+
+silver.fact_revenue_transactions
+  Grain: invoice_line_id x date
+  Columns:
+    - invoice_line_id     Invoice line identifier
+    - date                Transaction date
+    - customer_id         Customer identifier
+    - revenue_type        owned_rental / re_rent / ancillary / used_sale / new_sale
+    - segment             General Tool / Specialty (rental lines only)
+    - rate                Daily/period rental rate (rental lines only)
+    - time_on_rent_days   Days on rent (rental lines only)
+    - amount              Line amount
+    - region_id           Region identifier
+
+silver.fact_ar_transactions
+  Grain: invoice_id x date
+  Columns:
+    - invoice_id          Invoice identifier
+    - date                Payment/reference date
+    - customer_id         Customer identifier
+    - invoice_amount      Total invoice amount
+    - open_balance        Remaining unpaid balance
+    - aging_days          Days outstanding, recalculated consistently
+
+silver.fact_disposals
+  Grain: disposal_id
+  Columns:
+    - disposal_id         Disposal transaction identifier
+    - equipment_id        Equipment unit disposed
+    - date                Disposal date
+    - original_cost       Original cost of the unit
+    - book_value          Net book value at disposal
+    - sale_proceeds       Cash proceeds from sale
+    - gain_loss           sale_proceeds - book_value, validated against GL
+
+silver.fact_purchase_orders
+  Grain: po_line_id
+  Columns:
+    - po_line_id          PO line identifier
+    - date                Date received/capitalized
+    - equipment_id        Equipment unit purchased
+    - cost_amount         PO line cost amount
+    - capitalized_flag    True once received and capitalized
+
+silver.fact_gl_costs
+  Grain: gl_line_id x date
+  Columns:
+    - gl_line_id          GL line identifier
+    - date                Transaction date
+    - pl_line             Mapped management P&L line
+    - amount              Transaction amount
+
+3. GOLD LAYER — KPI-ready tables
+----------------------------------------------------------------
+
+gold.kpi_scorecard  (section: The reading)
+  Grain: company x period
+  Columns:
+    - grain                             Aggregation grain (e.g. Company)
+    - period                            Reporting period (e.g. TTM Aug-2026)
+    - revenue_usd_mm                    Total revenue ($M)
+    - revenue_growth_pct                Revenue growth % YoY
+    - fleet_oec_growth_pct              Fleet OEC growth %
+    - same_store_revenue_growth_pct     Same-store revenue growth %
+    - fleet_productivity_usd_mm         Fleet productivity $ (rate+time+mix)
+    - dollar_utilization_pct            Company dollar utilization %
+    - dollar_utilization_chg_pt         Change vs prior year (pt)
+    - ebitda_margin_pct                 EBITDA margin %
+    - ebitda_usd_mm                     EBITDA $ level
+    - ebitda_chg_usd_mm                 EBITDA $ change YoY
+    - fcf_usd_mm                        Simplified free cash flow $
+    - net_fleet_investment_usd_mm       Net fleet investment $
+    - disposal_proceeds_pct_of_cost     Disposal proceeds as % of original cost
+
+gold.revenue_bridge  (section 2)
+  Grain: company x period, one row per bridge component
+  Columns:
+    - component            Bridge component name
+    - amount_usd_mm        Component amount ($M)
+
+gold.dollar_utilization_by_segment  (section 3)
+  Grain: segment x period (+ company roll-up row)
+  Columns:
+    - segment                       General Tool / Specialty / Company
+    - share_of_fleet_pct            Share of fleet OEC %
+    - dollar_utilization_pct        Dollar utilization %
+    - chg_vs_py_pt                  Change vs prior year (pt)
+    - design_band_min_pct           Target band minimum %
+    - design_band_max_pct           Target band maximum %
+    - capital_stance                Fund / Replace only / Hold recommendation
+    - owned_rental_revenue_usd_mm   Owned rental revenue ($M)
+    - avg_oec_usd_mm                Average original cost ($M)
+
+gold.regional_mix  (section 4)
+  Grain: region x period (+ company roll-up row)
+  Columns:
+    - region                  Region name / Company
+    - revenue_usd_mm          Revenue ($M)
+    - revenue_share_pct       Share of company revenue %
+    - ebitda_margin_pct       EBITDA margin %
+    - dollar_utilization_pct  Dollar utilization %
+
+gold.management_pl  (section 5)
+  Grain: period (August) + TTM, one row per P&L line
+  Columns:
+    - line_item          P&L line name
+    - august_usd_mm      Current month amount ($M)
+    - ttm_usd_mm         Trailing 12-month amount ($M)
+    - pct_of_revenue     % of total revenue
+
+gold.oec_rollforward  (section 5a)
+  Grain: period, one row per bridge component
+  Columns:
+    - component          Roll-forward component name
+    - amount_usd_mm      Component amount ($M)
+
+gold.decision_metrics  (section 6)
+  Grain: company x period
+  Columns:
+    - grain                            Aggregation grain (e.g. Company)
+    - period                           Reporting period
+    - rate_realization_pct_py          Rate realization %, prior year
+    - rate_realization_pct_cy          Rate realization %, current year
+    - time_on_rent_giveback_usd_mm     Time-on-rent $ giveback
+    - specialty_pct_of_oec             Specialty % of fleet OEC
+    - ebitda_growth_pct                EBITDA growth %
+    - revenue_growth_pct               Revenue growth %
+    - cost_of_rentals_ex_dep_usd_mm    Cost of equipment rentals excl. depreciation $
+    - maintenance_usd_mm               Maintenance $
+    - maintenance_pct_of_oec           Maintenance as % of month-end OEC
+    - disposal_hurdle_pct              Disposal proceeds % of original cost (hurdle)
+    - gain_on_disposal_usd_mm          Gain on disposal $
+    - book_value_usd_mm                Book value at disposal $
+    - cash_tax_usd_mm                  Cash tax $
+    - working_capital_delta_usd_mm     Working capital change $
+
+================================================================
+END OF DOCUMENT
