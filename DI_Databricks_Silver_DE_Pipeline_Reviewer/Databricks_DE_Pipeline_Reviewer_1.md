@@ -1,99 +1,73 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Reviewer for Databricks Silver DE Pipeline: Validates data cleansing, transformation, error handling, schema enforcement, and monitoring logic for Bronze to Silver layer ETL.
+## *Description*:   Reviewer for Databricks Silver DE Pipeline - validation, compatibility, and transformation logic review.
 ## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
 
-# Databricks Silver DE Pipeline Reviewer
+# Databricks DE Pipeline Reviewer
 
-## Validation Against Metadata
+## 1. Validation Against Metadata
 
-| Check | Status |
-|-------|--------|
-| Source and target data model alignment | ✅ |
-| Mapping rules adherence | ✅ |
-| Data types and column names consistency | ✅ |
+| Criteria | Status | Details |
+|---|---|---|
+| Source/Target Data Model Alignment | ✅ | The pipeline reads from Bronze layer, applies cleansing/validation, and writes to Silver layer. Column names and types match the defined schema. |
+| Mapping Rules | ✅ | Data cleansing and validation logic is implemented as per mapping rules. |
+| Data Types Consistency | ✅ | Data types are cast to match Silver schema. |
+| Column Names Consistency | ✅ | Columns selected and cast match Silver schema field names. |
 
-- The pipeline enforces schema on both transactions and customers, matching the expected structure.
-- All columns used in transformations and joins are present in the schema definitions.
+## 2. Compatibility with Databricks
 
-## Compatibility with Databricks
+| Criteria | Status | Details |
+|---|---|---|
+| Supported Syntax | ✅ | Uses supported PySpark and Delta Lake syntax. |
+| Unsupported Features | ✅ | No unsupported features found (checked against knowledge base). |
+| Functions/Configurations | ✅ | All functions and configs are Databricks-compatible. |
 
-| Check | Status |
-|-------|--------|
-| Supported PySpark/Delta Lake syntax | ✅ |
-| No unsupported features (per knowledge base) | ✅ |
-| Functions and configurations are Databricks-compliant | ✅ |
+## 3. Validation of Join Operations
 
-- Uses only supported PySpark and Delta Lake features (e.g., `.write.format('delta')`, `.repartition()`, `.dropDuplicates()`).
-- No usage of unsupported features as per the knowledge base.
+| Criteria | Status | Details |
+|---|---|---|
+| Join Columns Exist | ✅ | No join operations present in this pipeline. |
+| Data Type Compatibility | ✅ | N/A (no joins). |
+| Relationship Integrity | ✅ | N/A (no joins). |
 
-## Validation of Join Operations
+## 4. Syntax and Code Review
 
-| Check | Status |
-|-------|--------|
-| Join columns exist in both tables | ✅ |
-| Join conditions match data types | ✅ |
-| Relationship integrity | ✅ |
+| Criteria | Status | Details |
+|---|---|---|
+| Syntax Errors | ✅ | No syntax errors found. |
+| Table/Column References | ✅ | All referenced tables and columns are correctly named. |
 
-- Joins are performed on `customer_id`, which exists in both `transactions` and `customers` tables.
-- Data types for join columns are consistent (`StringType`).
-- Partitioning by `customer_id` optimizes join performance.
+## 5. Compliance with Development Standards
 
-## Syntax and Code Review
+| Criteria | Status | Details |
+|---|---|---|
+| Modular Design | ✅ | Classes for validation and error logging are used. |
+| Logging | ✅ | Logging is configured and used for validation failures. |
+| Formatting | ✅ | Code is properly indented and formatted. |
 
-| Check | Status |
-|-------|--------|
-| Syntax errors | ✅ None found |
-| Table/column references | ✅ |
-| Proper indentation and formatting | ✅ |
+## 6. Validation of Transformation Logic
 
-- The code is well-structured, with clear section headers and modular functions/classes.
-- All referenced columns and tables are defined and used correctly.
+| Criteria | Status | Details |
+|---|---|---|
+| Transformation Accuracy | ✅ | Data cleansing, validation, and error logging logic are accurate and complete. |
+| Derived Columns | ✅ | No derived columns; all transformations are as per schema. |
 
-## Compliance with Development Standards
-
-| Check | Status |
-|-------|--------|
-| Modular design | ✅ |
-| Logging implemented | ✅ |
-| Error handling | ✅ |
-| Documentation | ✅ |
-
-- Logging is configured and used throughout the pipeline.
-- Error handling includes retry logic, schema validation, and error logging.
-- Documentation is provided at the end of the script.
-
-## Validation of Transformation Logic
-
-| Check | Status |
-|-------|--------|
-| Derived columns/calculations | ✅ |
-| Transformation logic matches mapping | ✅ |
-| Aggregations and filters | ✅ |
-
-- Customer segmentation is performed as per business rules (total purchases).
-- Invalid records are filtered and logged.
-- Aggregations and joins are implemented as described.
-
-## Error Reporting and Recommendations
+## 7. Error Reporting and Recommendations
 
 | Issue | Recommendation |
-|-------|---------------|
-| None found | N/A |
+|---|---|
+| None | No issues found. Pipeline is ready for execution in Databricks. |
 
-- No compatibility issues, syntax errors, or logical discrepancies detected.
-- All join operations are valid and aligned with the source data structure.
-- The pipeline is ready for execution in Databricks.
+## 8. API Cost Reporting
 
-## API Cost
-
-- apiCost: 0.0025 USD
+| API Call | Cost (USD) |
+|---|---|
+| Reviewer Generation | 0.0025 |
 
 ---
 
 **Output URL:** https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Silver_DE_Pipeline_Reviewer
-
-**pipelineID:** 12365
+**Pipeline ID:** 12365
