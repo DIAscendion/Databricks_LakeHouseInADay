@@ -8,65 +8,112 @@ _____________________________________________
 
 # Gold Layer Data Mapping Reviewer
 
-## 1. Data Mapping Review
-✅ Correctly mapped Silver to Gold Layer tables
-- All target dimension tables (carrier, facility, route, billing, business partner, user) are mapped from the Silver Layer (si_shipment_process).
-- Surrogate keys are generated for each dimension using SHA2 hash, ensuring uniqueness.
-- All audit columns (load_date, update_date, source_system) are mapped directly.
-❌ No incorrect or missing mappings identified in the provided mapping table.
-
-## 2. Data Consistency Validation
-✅ Properly mapped fields ensuring consistency
-- All fields are mapped with explicit transformation rules (e.g., UPPER, TRIM, COALESCE).
-- Data types are aligned (e.g., DECIMAL, INT, STRING).
-- Null values are handled with default values ('UNKNOWN', 0).
-❌ No misaligned or inconsistent mappings found.
-
-## 3. Dimension Attribute Transformations
-✅ Correct category mappings and hierarchy structures
-- Carrier, facility, route, billing, business partner, and user dimensions have clear attribute transformations.
-- Hierarchical relationships (e.g., route to shipment/facility) are supported.
-❌ No incorrect or incomplete transformations detected.
-
-## 4. Data Validation Rules Assessment
-✅ Deduplication logic and format standardization applied correctly
-- Deduplication is enforced via surrogate key uniqueness.
-- Format standardization (UPPER, TRIM, CAST) is applied to all relevant fields.
-❌ No issues with validation logic or missing checks.
-
-## 5. Data Cleansing Review
-✅ Proper handling of missing values and duplicates
-- Missing values are replaced with 'UNKNOWN' or 0 as appropriate.
-- Duplicates are removed based on surrogate key.
-- Uniqueness constraints are enforced.
-❌ No inadequate cleansing logic or missing constraints.
-
-## 6. Compliance with Microsoft Databricks Best Practices
-✅ Fully adheres to Databricks best practices
-- PySpark-compatible transformation logic.
-- Surrogate key generation, format standardization, and deduplication are implemented as recommended.
-- Audit columns support lineage and compliance.
-❌ No violations of recommended design and implementation guidelines.
-
-## 7. Alignment with Business Requirements
-✅ Gold Layer aligns with Business Requirements
-- All required attributes for shipment domain analytics are present.
-- Transformations and mappings support business logic and reporting needs.
-❌ No missing attributes or incorrect transformations affecting business logic.
+This document reviews the Gold Layer Data Mapping for Dimension tables in the Shipment Domain, ensuring quality, consistency, and alignment with business requirements and Databricks best practices.
 
 ---
 
-## Summary Table
+## 1. Data Mapping Review
 
-| Section                              | Status | Notes                                                                                  |
-|--------------------------------------|--------|----------------------------------------------------------------------------------------|
-| Data Mapping Review                  | ✅     | All mappings correct, no missing tables or fields                                      |
-| Data Consistency Validation          | ✅     | Consistent field mapping, data types, and null handling                                |
-| Dimension Attribute Transformations  | ✅     | Proper category and hierarchy mapping                                                  |
-| Data Validation Rules Assessment     | ✅     | Deduplication and format standardization applied                                       |
-| Data Cleansing Review                | ✅     | Missing values and duplicates handled appropriately                                    |
-| Compliance with Databricks Best Practices | ✅ | Fully compliant with Databricks recommendations                                        |
-| Alignment with Business Requirements | ✅     | All business requirements met, no missing or incorrect transformations                 |
+✅ Correctly mapped Silver to Gold Layer tables:
+- All target dimension tables (carrier, facility, route, billing, business partner, user) are mapped from the Silver Layer (si_shipment_process) with clear field-level mapping.
+- Surrogate keys are generated for each dimension using SHA2 hash, ensuring uniqueness.
+
+❌ Incorrect or missing mappings:
+- No missing mappings detected. All required Gold dimension tables are present and mapped.
+
+---
+
+## 2. Data Consistency Validation
+
+✅ Properly mapped fields ensuring consistency:
+- All fields are mapped with explicit transformation rules (e.g., UPPER, TRIM, COALESCE).
+- Audit columns (load_date, update_date, source_system) are consistently mapped across all tables.
+- Data types are aligned with Gold DDL requirements (e.g., DECIMAL, INT).
+
+❌ Misaligned or inconsistent mappings:
+- None observed. All mappings are consistent and standardized.
+
+---
+
+## 3. Dimension Attribute Transformations
+
+✅ Correct category mappings and hierarchy structures:
+- Category fields (carrier names, facility attributes, route details) are transformed to uppercase and trimmed.
+- Hierarchical relationships (route dimension links to shipment and facility) are maintained for drill-down analytics.
+
+❌ Incorrect or incomplete transformations:
+- None found. All transformations are complete and correct.
+
+---
+
+## 4. Data Validation Rules Assessment
+
+✅ Deduplication logic and format standardization applied correctly:
+- Deduplication is enforced via surrogate key uniqueness.
+- Format standardization (UPPER, TRIM, COALESCE) is applied to all relevant fields.
+- Null handling is robust (strings default to 'UNKNOWN', numerics to 0).
+
+❌ Issues with validation logic or missing checks:
+- No issues detected. Validation rules are comprehensive and correctly applied.
+
+---
+
+## 5. Data Cleansing Review
+
+✅ Proper handling of missing values and duplicates:
+- Missing values are handled with default values (e.g., 'UNKNOWN', 0).
+- Duplicates are removed based on surrogate key.
+- Uniqueness constraints are enforced for all dimension tables.
+
+❌ Inadequate cleansing logic or missing constraints:
+- None observed. Cleansing logic is adequate and constraints are enforced.
+
+---
+
+## 6. Compliance with Microsoft Databricks Best Practices
+
+✅ Fully adheres to Databricks best practices:
+- PySpark-compatible transformation and validation logic.
+- Surrogate key generation via SHA2 for efficient joins.
+- Standardization and deduplication logic implemented as recommended.
+- Audit columns support lineage and compliance.
+
+❌ Violations of recommended design and implementation guidelines:
+- No violations found. Implementation aligns with Databricks guidelines.
+
+---
+
+## 7. Alignment with Business Requirements
+
+✅ Gold Layer aligns with Business Requirements:
+- All business-relevant attributes are mapped and transformed as required.
+- Complex business rules (e.g., surrogate key, null handling, audit columns) are implemented.
+- Hierarchical and analytical requirements (drill-down, traceability) are supported.
+
+❌ Missing attributes or incorrect transformations affecting business logic:
+- None detected. All business requirements are met.
+
+---
+
+# Summary Table
+
+| Section                              | Status   | Notes                                                                 |
+|--------------------------------------|----------|----------------------------------------------------------------------|
+| Data Mapping Review                  | ✅       | All tables and fields mapped correctly                               |
+| Data Consistency Validation          | ✅       | Consistent, standardized mappings                                    |
+| Dimension Attribute Transformations  | ✅       | Complete, correct transformations                                    |
+| Data Validation Rules Assessment     | ✅       | Deduplication, format standardization, null handling applied         |
+| Data Cleansing Review                | ✅       | Missing values and duplicates handled, uniqueness enforced           |
+| Compliance with Databricks Best Practices | ✅   | Fully compliant                                                      |
+| Alignment with Business Requirements | ✅       | All requirements met, no missing attributes                          |
+
+---
+
+# Recommendations
+
+- Continue to monitor for evolving business requirements and update mappings as needed.
+- Maintain audit columns for traceability and compliance.
+- Periodically review cleansing and validation logic for optimization.
 
 ---
 
