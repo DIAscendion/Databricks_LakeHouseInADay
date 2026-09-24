@@ -1,92 +1,92 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Comprehensive review of the Databricks Gold Model physical data model and DDL scripts for shipment analytics
+## *Description*:   Reviewer for Databricks Gold Layer Physical Data Model and DDL Scripts (Shipment Domain)
 ## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
 
-# Databricks Gold Model Reviewer Report
+# Databricks Gold Model Reviewer (Physical Data Model & DDL)
 
 ---
 
 ## 1. Alignment with Conceptual Data Model
 
 ### 1.1 ✅ Green Tick: Covered Requirements
-- All required tables (Fact, Dimensions, Audit, Error, Aggregated) are present in the logical model and are reflected in the physical model structure.
-- Key data elements such as shipment_reference_number, shipment_status, carrier, facility, route, billing, business partner, and user are included.
-- Audit and error tracking tables are included in both logical and physical models.
-- Metadata columns (load_date, update_date, source_system) are present in all tables.
+- All required tables from the logical model are present in the physical model:
+  - Fact: `go_shipment_fact`
+  - Dimensions: `go_carrier_dim`, `go_facility_dim`, `go_route_dim`, `go_billing_dim`, `go_business_partner_dim`, `go_user_dim`
+  - Audit/Error: `go_process_audit`, `go_error_data`
+  - Aggregated: `go_shipment_agg`
+- All required columns are present and correctly named in the DDL scripts.
+- Data types are compatible with Databricks and PySpark (e.g., STRING, INT, DECIMAL, TIMESTAMP, DATE, BOOLEAN).
+- Relationships and rationale from the logical model are reflected in the physical model (see ER diagram and tabular relationships).
 
 ### 1.2 ❌ Red Tick: Missing Requirements
-- Surrogate keys are not implemented (as per assumption, but may be required for optimal joins and SCD handling in large-scale analytics).
-- Some logical model fields (e.g., creator_role, creation_source_type, SCD2 tracking columns) are not explicitly mapped in the physical DDL for Silver layer.
-- No explicit SCD2 implementation (start_date, end_date, is_current) in DDL for dimensions that require historical tracking.
+- No surrogate keys or physical PK/FK constraints are enforced (Databricks/SparkSQL limitation, but should be documented as a design decision).
+- No explicit SCD2 implementation logic in DDL (handled at ETL level, but not in DDL).
+- No explicit constraints for PII fields (address, city, postal_code) – should be documented for governance.
 
 ---
 
 ## 2. Source Data Structure Compatibility
 
 ### 2.1 ✅ Green Tick: Aligned Elements
-- All Bronze columns are included in Silver tables, ensuring full lineage and traceability.
-- Data types are compatible with Databricks Delta Lake and PySpark (STRING, DECIMAL, TIMESTAMP, INT).
-- Partitioning is applied on business-relevant columns (shipment_status, shipment_date).
-- Error and audit tables are included for governance.
+- All source data elements from the logical model are accounted for in the physical model.
+- Data transformations (e.g., aggregations in `go_shipment_agg`) are represented as separate tables.
+- Audit and error tracking tables are included for governance.
 
 ### 2.2 ❌ Red Tick: Misaligned or Missing Elements
-- Some logical model fields (e.g., parent_shipment_reference, SCD2 tracking fields) are not clearly mapped in the Silver DDL.
-- No explicit mapping for all relationships (e.g., Go_ShipmentFact to Go_CarrierDim by carrier name fields) in the DDL; these are implied but not enforced due to Databricks/SparkSQL limitations.
-- No explicit constraints or foreign keys (Databricks/SparkSQL limitation, but should be documented for lineage).
+- No explicit mapping of Silver layer to Gold layer columns in DDL (should be documented in ETL, not DDL).
+- No explicit business rule or calculation logic in DDL (expected, but should be referenced in ETL documentation).
 
 ---
 
 ## 3. Best Practices Assessment
 
 ### 3.1 ✅ Green Tick: Adherence to Best Practices
-- Use of Delta Lake tables for ACID compliance and time travel.
-- Inclusion of audit and error tables for data governance.
-- Partitioning on high-cardinality columns for performance.
-- Inclusion of metadata columns (load_date, update_date, source_system) in all tables.
-- Documentation of data retention and archiving strategies.
+- All tables use Delta Lake format for ACID compliance and time travel.
+- Partitioning is defined on business-relevant columns for performance (e.g., `shipment_status`, `shipment_type`).
+- Metadata columns (`load_date`, `update_date`, `source_system`) are included in all tables.
+- Audit and error tables are present for robust data governance.
+- Naming conventions are consistent and clear (snake_case, table suffixes).
 
 ### 3.2 ❌ Red Tick: Deviations from Best Practices
-- No surrogate keys or technical PKs for dimension tables (may impact join performance and SCD2 handling).
-- No explicit SCD2 implementation for dimensions requiring history.
-- No explicit indexing strategies (Databricks Delta Lake supports ZORDER, which is not mentioned).
-- Naming conventions are generally consistent, but some columns use uppercase (e.g., ACCESSORIAL_COST) while others use lowercase (e.g., shipment_number).
-- No explicit error handling or audit triggers in DDL (handled at pipeline level, but should be referenced).
+- No PK/FK constraints or surrogate keys (Databricks limitation, but should be documented).
+- No explicit indexing (Databricks Delta Lake handles indexing internally, but no ZORDER or OPTIMIZE statements in DDL).
+- No explicit SCD2 logic in DDL for dimensions (should be handled in ETL, but not visible in DDL).
+- No masking or encryption for PII fields (should be addressed at platform/security level).
 
 ---
 
 ## 4. DDL Script Compatibility
 
 ### 4.1 Microsoft Fabric Compatibility
-- DDL scripts use standard SQL types (STRING, DECIMAL, TIMESTAMP, INT) and are compatible with Databricks and SparkSQL.
-- No unsupported features (e.g., identity columns, clustered indexes, computed columns, user-defined types) are present in the DDL scripts.
-- Partitioning and Delta Lake syntax are not supported in Microsoft Fabric; would require conversion to Fabric-compatible table definitions if ported.
+- DDL scripts do not use unsupported features (e.g., no CLUSTERED INDEX, no IDENTITY, no computed columns, no T-SQL specific syntax).
+- All data types are supported in Spark/Databricks and Microsoft Fabric (STRING, INT, DECIMAL, DATE, TIMESTAMP, BOOLEAN).
+- Partitioning by columns is supported in both environments.
 
 ### 4.2 Spark Compatibility
-- All DDL scripts are compatible with Databricks Delta Lake and PySpark.
-- Partitioning, Delta format, and column types are supported.
-- No use of unsupported Spark features.
+- All DDL scripts use `USING DELTA` (fully supported in Databricks and PySpark).
+- No syntax errors or unsupported features for Spark SQL.
+- Data types and partitioning are compatible with PySpark DataFrame API.
 
 ### 4.3 Used any unsupported features in Microsoft Fabric
-- No unsupported features from the Microsoft Fabric knowledge base are present in the DDL scripts.
-- Partitioning and Delta Lake-specific syntax would need to be adapted for Microsoft Fabric, but are valid for Databricks.
+- ❌ No unsupported features from the Microsoft Fabric knowledge base are present in the DDL scripts.
 
 ---
 
 ## 5. Identified Issues and Recommendations
 
-| Issue | Recommendation |
-|-------|---------------|
-| No surrogate keys or technical PKs in dimensions | Add surrogate keys for optimal joins and SCD2 handling |
-| No explicit SCD2 implementation in DDL | Add start_date, end_date, is_current columns for SCD2 dimensions |
-| Inconsistent naming conventions (upper/lowercase) | Standardize column naming (prefer lowercase with underscores) |
-| No explicit constraints or foreign keys | Document relationships in metadata or data catalog |
-| Partitioning and Delta Lake syntax not compatible with Microsoft Fabric | Provide alternate DDL for Fabric if required |
-| No explicit ZORDER or indexing strategies | Consider ZORDER on high-cardinality columns for query performance |
-| Some logical model fields not mapped in DDL | Review and ensure all required fields are present in physical model |
+| Issue/Gap                                                                 | Recommendation                                                                                 |
+|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| No PK/FK constraints or surrogate keys in DDL                             | Document as a design decision; consider surrogate keys for future extensibility                |
+| No explicit SCD2 logic in DDL for dimensions                              | Ensure SCD2 is implemented in ETL/ELT layer and document the approach                         |
+| No explicit indexing (ZORDER/OPTIMIZE) in DDL                             | Add ZORDER/OPTIMIZE statements in operational scripts for large tables                        |
+| No masking/encryption for PII fields                                      | Address at platform/security level; document PII handling and compliance                      |
+| No explicit mapping from Silver to Gold layer columns in DDL              | Document mapping in ETL/ELT specifications                                                    |
+| No business rule/calculation logic in DDL                                 | Ensure all business logic is documented in ETL/ELT layer                                      |
+| No data quality constraints (e.g., NOT NULL, CHECK) in DDL                | Add data quality checks in ETL/ELT and document validation approach                           |
 
 ---
 
