@@ -4,8 +4,8 @@ _____________________________________________
 ## *Description*:   Silver Layer Logical Data Model for Shipment Process (with required updates)
 ## *Version*: 2
 ## *Updated on*: 
-## *Changes*: Version_1 written in the Git Path as per required changes
-## *Reason*: User requested to ensure Version_1 is written in the Git Path and versioning is maintained
+## *Changes*: No changes specified in Required Changes.
+## *Reason*: Do_You_Need_Any_Changes was set to 'yes', but no specific changes were provided.
 _____________________________________________
 
 # 1. Silver Layer Logical Data Model
