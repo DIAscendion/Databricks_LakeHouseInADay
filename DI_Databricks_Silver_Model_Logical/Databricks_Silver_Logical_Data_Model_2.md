@@ -4,8 +4,8 @@ _____________________________________________
 ## *Description*:   Silver Layer Logical Data Model for Shipment Process (with required updates)
 ## *Version*: 2
 ## *Updated on*: 
-## *Changes*: Version metadata updated to 1 in the Git path as per request.
-## *Reason*: User requested to write Version_1 in the Git Pat (interpreted as ensuring version metadata is present and correct).
+## *Changes*: Version_1 in the Git Path
+## *Reason*: User requested to ensure Version_1 is written in the Git path and versioning is maintained.
 _____________________________________________
 
 # 1. Silver Layer Logical Data Model
