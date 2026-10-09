@@ -1,0 +1,200 @@
+Analytical Reporting Requirements for Rental Revenue-to-Cash (Order-to-Cash / AR Performance Monitoring)
+
+Following are the reporting requirements for the Rental Revenue-to-Cash initiative to monitor revenue, billing, receivables, and collections performance across branches and regions. A conceptual analytical data model is to be developed by understanding these reporting requirements and the acceptance criteria. This consolidates and replaces a sprawl of existing Power BI reports (AR Reports, AR Reports by Sales Rep, AR Reports by Collector, AR Reports by Collector - WEEKLY, AR Dashboard, AR_VendorRpt, Invoice Detail - Master Account, Rental Contracts Opened by Sales Rep) into a governed set of consolidated views.
+
+1. Revenue-to-Cash Executive Scorecard (Daily / Weekly)
+
+Objectives of the Report:
+Provide a single, comparable "health view" of revenue, billing, AR, and collections performance across Revenue, AR Aging, Cash Application, and Credit Risk domains to enable rapid course-correction by branch and region.
+
+Uses of the Report:
+Identify branches trending below target on revenue or collections and prioritize support. Compare performance across branches, regions, and the network. Track leading indicators (AR 90+ %, unapplied cash, suspended customers) that predict cash-flow risk.
+
+Data Attributes in the Report:
+Branch name, region, and organization hierarchy. Date and period (day/week/month). Sales rep and collector. Health score by domain (Revenue, AR, Cash App, Credit Risk). Top aging/risk drivers by branch and customer.
+
+KPIs and Metrics in the Report:
+Overall Revenue-to-Cash Health Score (0-100). Rental Revenue (period and trend). DSO (Days Sales Outstanding). AR 90+ %. Collection Effectiveness Index (CEI). Unapplied Cash %.
+
+Interactivity in the Report:
+Drill Down: Network -> Region -> Branch -> Sales Rep/Collector. Drill Through: From a score tile to the underlying fact (revenue, AR aging, cash application). Drill Up: Compare branch health across weeks/months. Slicers: Region, branch, equipment class, customer status.
+
+Calculations in the Report:
+Health Score = weighted composite of normalized domain scores (configurable weights). DSO = (Total AR Outstanding / Total Credit Sales in Period) x Number of Days in Period. AR 90+ % = AR in 90+ bucket / Total AR Outstanding x 100.
+
+Data Constraints:
+* Branch must exist in organization hierarchy and be active for the selected date.
+* Health Score must be between 0 and 100.
+* Prevent duplicate score records for a unique grain (Branch, Date, Period Type).
+
+Validations:
+* Ensure component domain scores roll up to the overall score per the configured weights.
+* Validate that measures used in rates (e.g., credit sales) are non-zero where required.
+* Ensure that drill-through totals reconcile to source fact totals (gold.fct_rental_revenue, gold.fct_ar_aging).
+
+Security Access for the Report:
+Branch managers can view their own branch. Regional leaders can view branches in their region. SVP Finance and corporate leadership can view the full network.
+
+Indicative Layout of the Report:
+Top section: Score tiles (Overall + 4 domain scores) with target bands. Middle section: Trend lines for revenue and DSO. Bottom section: AR 90+ leaderboard and "drivers" table by branch/customer.
+
+2. Rental Revenue & Billing Performance Report
+
+Objectives of the Report:
+Monitor billed rental revenue by branch, region, sales rep, and equipment class, with visibility into gross vs. net billings and credit memo activity.
+
+Uses of the Report:
+Detect revenue shortfalls by branch or equipment class. Compare sales rep performance. Track credit memo/rebill volume as a quality signal on billing accuracy.
+
+Data Attributes in the Report:
+Branch, region, date/period. Sales rep. Equipment class. Contract status (Open/Closed). Gross billings, credit memos, net billings, invoice count.
+
+KPIs and Metrics in the Report:
+Rental Revenue. Gross Billings. Net Billings. Average Daily Rate (ADR). Revenue per Contract. Credit Memo Rate (credit memo $ / gross billings).
+
+Interactivity in the Report:
+Drill Down: Region -> Branch -> Sales Rep -> Contract. Drill Through: From revenue total to invoice/contract detail. Drill Up: Branch -> Region -> Network, Week -> Month -> Quarter.
+
+Calculations in the Report:
+Net Billings = Gross Billings - Credit Memos. ADR = Rental Revenue / Total Billed Rental Days. Revenue per Contract = Rental Revenue / Number of Contracts.
+
+Data Constraints:
+* Invoice amounts must tie to a valid contract_id (post-Silver conformance).
+* Credit memo amounts must be negative; standard invoice amounts non-negative.
+* Prevent duplicate revenue aggregates for a unique grain (Branch, Date, Sales Rep, Equipment Class).
+
+Validations:
+* Validate that net billings reconcile to gross billings minus credit memos.
+* Ensure ADR calculation excludes zero-duration or cancelled contracts.
+
+Security Access for the Report:
+Branch managers see their branch. Regional sales leaders see their region. Finance leadership sees the network.
+
+Indicative Layout of the Report:
+Top: KPI strip (Revenue, ADR, Credit Memo Rate). Middle: Revenue trend by branch + equipment class mix chart. Bottom: Detailed table by sales rep/contract.
+
+3. AR Aging & Collections Report
+
+Objectives of the Report:
+Track outstanding accounts receivable by aging bucket, branch, collector, and customer to prioritize collections effort and reduce bad-debt risk. Replaces AR Reports, AR Reports by Collector, AR Reports by Collector - WEEKLY, and AR Dashboard.
+
+Uses of the Report:
+Spot customers/branches with rising past-due AR. Prioritize collector worklists. Track AR aging trend over time for credit risk review.
+
+Data Attributes in the Report:
+Branch, region, date (snapshot). Customer, collector, sales rep. Invoice detail (invoice_id, due date, amount, days past due). Aging bucket (0-30/31-60/61-90/90+).
+
+KPIs and Metrics in the Report:
+Total AR Outstanding. AR Aging by Bucket. AR 90+ %. DSO. Best Possible DSO. DSO Trend (period over period).
+
+Interactivity in the Report:
+Drill Down: Region -> Branch -> Collector -> Customer -> Invoice. Drill Through: From an aging bucket total to the underlying invoice list. Drill Up: Snapshot date -> Week -> Month trend.
+
+Calculations in the Report:
+Aging Bucket = snapshot date - invoice due date, bucketed into 0-30/31-60/61-90/90+. DSO = (Total AR Outstanding / Total Credit Sales in Period) x Number of Days in Period. AR 90+ % = AR in 90+ bucket / Total AR Outstanding x 100.
+
+Data Constraints:
+* Every outstanding invoice must map to a valid customer_id.
+* Aging bucket boundaries are fixed (0-30/31-60/61-90/90+) and non-overlapping.
+* Prevent duplicate AR snapshot records for a unique grain (Customer, Invoice, Snapshot Date).
+
+Validations:
+* Validate that the sum of aging buckets reconciles to Total AR Outstanding.
+* Validate that DSO denominator (credit sales) is non-zero before calculating.
+* Reconcile AR Outstanding to gold.fct_ar_aging source totals.
+
+Security Access for the Report:
+Collectors see their assigned branch/customers. Branch managers see their branch. Credit & collections leadership see the network.
+
+Indicative Layout of the Report:
+Top: KPI cards (Total AR, AR 90+ %, DSO). Middle: Aging bucket stacked bar by branch. Bottom: Invoice-level detail table by collector/customer.
+
+4. Cash Application & Collector Performance Report
+
+Objectives of the Report:
+Measure how effectively cash is collected and applied against open invoices, and evaluate collector-level performance.
+
+Uses of the Report:
+Identify underperforming collectors or branches on collection speed. Track unapplied cash as an operational data-quality signal. Support collector coaching and performance reviews.
+
+Data Attributes in the Report:
+Branch, region, date/period. Collector. Payment method. Invoice-to-payment match status (applied/unapplied). Days to pay.
+
+KPIs and Metrics in the Report:
+Cash Collected. Collection Effectiveness Index (CEI). Average Days to Pay. % Invoices Paid On Time. Unapplied Cash $ and %.
+
+Interactivity in the Report:
+Drill Down: Region -> Branch -> Collector -> Customer. Drill Through: From a collector's total to their payment/invoice detail. Drill Up: Week -> Month trend by collector.
+
+Calculations in the Report:
+CEI = (Beginning AR + Credit Sales - Ending Total AR) / (Beginning AR + Credit Sales - Ending Current AR) x 100. Average Days to Pay = Average (Payment Date - Invoice Date) across paid invoices. Unapplied Cash % = Unapplied Payment $ / Total Payments $ x 100.
+
+Data Constraints:
+* Payment amount must be non-negative.
+* A payment can apply to zero (unapplied), one, or more invoices; partial application must be tracked.
+* Prevent duplicate payment records for a unique grain (Receipt ID).
+
+Validations:
+* Validate that applied payment amounts do not exceed the related invoice amount.
+* Validate CEI calculation window alignment (same period for numerator and denominator).
+* Flag and report unapplied cash separately rather than silently excluding it.
+
+Security Access for the Report:
+Collectors see their own performance. Branch/regional collections managers see their team. Finance leadership sees the network.
+
+Indicative Layout of the Report:
+Top: KPI cards (Cash Collected, CEI, Avg Days to Pay). Middle: Collector leaderboard (ranked). Bottom: Unapplied cash detail table.
+
+5. Customer Credit Risk Report
+
+Objectives of the Report:
+Monitor customer-level credit exposure and risk signals to support credit limit decisions and proactive risk management.
+
+Uses of the Report:
+Identify customers approaching or exceeding credit limits. Flag suspended customers with open contracts or outstanding AR. Support credit terms review.
+
+Data Attributes in the Report:
+Customer name, credit terms, credit limit, customer status (Active/Suspended). Outstanding AR, AR 90+ amount. Open contract count/value. Customer tenure (customer since date).
+
+KPIs and Metrics in the Report:
+Credit Utilization % (Outstanding AR / Credit Limit). Customers Over Limit (count and $). AR 90+ $ by Customer. Suspended Customers with Open Exposure.
+
+Interactivity in the Report:
+Drill Down: Region -> Branch -> Customer. Drill Through: From a customer's exposure to their invoice/contract detail. Drill Up: Trend of network-wide credit utilization over time.
+
+Calculations in the Report:
+Credit Utilization % = Outstanding AR / Credit Limit x 100. Suspended Customers with Open Exposure = count of customers where customer_status = Suspended and Outstanding AR > 0 or open contracts exist.
+
+Data Constraints:
+* Each customer_id must resolve to a single conformed customer record (post-dedup in Silver).
+* Credit limit must be non-negative.
+* Prevent duplicate customer risk snapshot records for a unique grain (Customer, Snapshot Date).
+
+Validations:
+* Validate that duplicate customer records (same legal entity, multiple IDs) are resolved before aggregating exposure.
+* Validate that Credit Utilization % calculation handles a zero or null credit limit without erroring.
+
+Security Access for the Report:
+Credit & collections leadership see the network. Branch managers see their branch's customers. Executives see aggregates only (no individual customer PII beyond name).
+
+Indicative Layout of the Report:
+Top: KPI cards (Customers Over Limit, Suspended w/ Exposure). Middle: Credit utilization heatmap by branch. Bottom: Customer detail table sorted by exposure.
+
+Conceptual Model Diagram (High-level Entities & Relationships):
+Entities: Branch, Region, Date, Customer, SalesRep, Collector, EquipmentClass, Contract.
+Facts: Fact_Rental_Revenue, Fact_AR_Aging, Fact_Cash_Application, Fact_Credit_Risk.
+
+Relationship Summary (Conceptual):
+* Region 1-M Branch
+* Branch 1-M Contract
+* Customer 1-M Contract
+* Customer 1-M Invoice (through Contract)
+* SalesRep M-1 Branch (at time of contract)
+* Collector M-1 Branch (at time of assignment), Collector 1-M Customer (collections assignment)
+* Contract 1-M Invoice
+* Invoice 1-M CashReceipt (an invoice may be paid across multiple receipts; a receipt may be unapplied)
+* All facts link to Date; AR and Credit Risk facts link to Customer; Revenue and Cash Application facts link to Branch and Contract/Invoice.
+
+Review & Sign-off Plan:
+* Walkthrough with Finance (SVP sponsor), Data Engineering, and Architecture.
+* Capture feedback items, update conceptual baseline, and obtain sign-off before the Silver/Gold build phase.
