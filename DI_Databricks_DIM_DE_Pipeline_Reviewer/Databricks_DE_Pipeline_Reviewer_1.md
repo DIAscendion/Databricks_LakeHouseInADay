@@ -1,7 +1,7 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Reviewer validation report for Databricks Gold Dimension DE Pipeline PySpark implementation.
+## *Description*: Review report for the Databricks Gold Dimension DE Pipeline PySpark implementation, validating Databricks compatibility, transformation quality, joins, syntax, standards, and execution readiness.
 ## *Version*: 1
 ## *Updated on*: 
 _____________________________________________
@@ -9,23 +9,20 @@ _____________________________________________
 # Databricks DE Pipeline Reviewer
 
 ## Input Summary
+This reviewer validates the PySpark pipeline file `DI_Databricks_Gold_Dim_DE_Pipeline/Databricks_Gold_Dim_DE_Pipeline_1.py`. The pipeline reads Silver layer dimension-oriented source tables, applies validation and standardization logic, writes Gold dimension tables using Delta merge semantics, logs audit and error records, performs post-load optimization, and executes final schema validation checks.
 
+## Reviewed File Details
 | Item | Value |
 |---|---|
-| Input file | `DI_Databricks_Gold_Dim_DE_Pipeline/Databricks_Gold_Dim_DE_Pipeline_1.py` |
-| Output folder | `DI_Databricks_DIM_DE_Pipeline_Reviewer` |
-| Pipeline name | `Databricks_Gold_Dim_DE_Pipeline` |
-| Review mode | `Mode 1` |
-| Reviewer file | `Databricks_DE_Pipeline_Reviewer_1.md` |
+| Input File | `DI_Databricks_Gold_Dim_DE_Pipeline/Databricks_Gold_Dim_DE_Pipeline_1.py` |
+| Output Folder | `DI_Databricks_DIM_DE_Pipeline_Reviewer` |
+| Reviewer File | `Databricks_DE_Pipeline_Reviewer_1.md` |
+| Pipeline Type | Databricks DE Pipeline Reviewer |
+| Pipeline ID | `14689` |
 
-## Pipeline Overview
+## Pipeline Component Identification
 
-This PySpark pipeline builds Gold dimension tables from Silver-layer source tables for customer, branch employee, and rental contract data. It applies standardization, de-duplication, validation, Delta merge logic, audit logging, error capture, and post-load optimization.
-
-## Identified Data Flow
-
-### Source Tables
-
+### Data Sources
 | Source Alias | Source Table |
 |---|---|
 | customer | `silver.si_customer_master` |
@@ -33,200 +30,178 @@ This PySpark pipeline builds Gold dimension tables from Silver-layer source tabl
 | rental_contract | `silver.si_rental_contracts` |
 
 ### Target Tables
-
 | Target Alias | Target Table |
 |---|---|
 | customer | `gold.dim_customer` |
 | branch_employee | `gold.dim_branch_employee` |
 | rental_contract | `gold.dim_rental_contract` |
-| error | `gold.dim_data_quality_errors` |
-| audit | `gold.dim_process_audit` |
+| error table | `gold.dim_data_quality_errors` |
+| audit table | `gold.dim_process_audit` |
 
 ### Intermediate Transformations
-
-| Area | Transformation |
+| Function | Purpose |
 |---|---|
-| Text cleansing | `trim`, `regexp_replace`, `upper`, `initcap` |
-| Deduplication | `row_number` over window partitions |
-| Surrogate keys | `xxhash64` with `abs` |
-| Validation | mandatory key checks, date chronology check |
-| Timestamps | `coalesce(update_date, load_date)` |
-| Rejection handling | invalid records written to error table |
-| Upsert | Delta Lake `merge` |
-| Optimization | `OPTIMIZE ... ZORDER BY` |
+| `create_gold_support_tables()` | Creates Delta error and audit support tables |
+| `write_audit_log()` | Appends audit trail records |
+| `write_error_records()` | Captures rejected records with validation metadata |
+| `standardize_text()` | Trims and normalizes whitespace |
+| `load_dim_customer()` | Validates, deduplicates, standardizes, and shapes customer dimension |
+| `load_dim_branch_employee()` | Validates, deduplicates, standardizes, and shapes branch employee dimension |
+| `load_dim_rental_contract()` | Validates chronology and mandatory keys, standardizes, and shapes rental contract dimension |
+| `merge_to_delta()` | Performs initial write or Delta merge into target tables |
+| `optimize_gold_tables()` | Runs `OPTIMIZE` with `ZORDER BY` on Gold tables |
+| `run_dimension_pipeline()` | Orchestrates end-to-end pipeline execution |
 
 ### Joins
-
-| Join Type | Status | Details |
+| Join Type | Present | Notes |
 |---|---|---|
-| Explicit DataFrame joins | ❌ Not present | No source-to-source or source-to-target DataFrame join operations are implemented in this pipeline. |
-| Delta merge match | ✅ Present | Merge conditions use business keys between source DataFrame and target Delta table. |
+| DataFrame joins | ❌ | No explicit DataFrame join operations are implemented in the reviewed code |
+| Delta merge joins | ✅ | Merge conditions are used between source DataFrames and target Delta tables on business keys |
 
 ### Aggregations
-
-| Aggregation | Status | Details |
+| Aggregation | Present | Notes |
 |---|---|---|
-| GroupBy / aggregate | ❌ Not present | No aggregate transformation identified. |
-| Counts for metrics | ✅ Present | `count()` used for read, rejected, and written record metrics. |
+| Group By / Aggregate | ❌ | No business aggregations identified |
+| Window Deduplication | ✅ | `row_number()` used for latest-record selection |
+| Counts | ✅ | Used for audit/error metrics (`count()`) |
 
 ### Filters
-
-| Filter Category | Status | Details |
-|---|---|---|
-| Mandatory key filters | ✅ | Null/blank validation on `customer_id`, `employee_id`, `branch_code`, `contract_id` |
-| Business rule filters | ✅ | Rental contract end date earlier than start date |
-| Deduplication filter | ✅ | `rn == 1` retained after window ranking |
+| Area | Filter Logic |
+|---|---|
+| Customer validation | Null/blank `customer_id` filtered as invalid |
+| Branch employee validation | Null/blank `employee_id` or `branch_code` filtered as invalid |
+| Rental contract validation | Null/blank `contract_id` or `customer_id`; end date earlier than start date |
+| Deduplication | `rn == 1` after window ordering |
 
 ### Output Formats
-
 | Output | Format |
 |---|---|
-| Gold tables | Delta |
-| Error table | Delta |
-| Audit table | Delta |
-| Reviewer output | Markdown |
+| Gold dimensions | Delta table |
+| Error table | Delta table |
+| Audit table | Delta table |
 
 ## Validation Against Metadata
-
 | Check | Status | Reviewer Comments |
 |---|---|---|
-| Metadata header format present | ✅ | File contains required metadata header structure and fields. |
-| Description aligned to implementation | ✅ | Description correctly states Gold dimension build with validation, audit logging, and optimization. |
-| Source/target table declarations present | ✅ | `SOURCE_TABLES` and `TARGET_TABLES` are explicitly defined. |
-| Column naming consistency | ✅ | Selected target columns are consistently named within each load function. |
-| Data type consistency fully verifiable from mapping | ❌ | No external source-to-target mapping document was provided, so full metadata-to-mapping validation cannot be conclusively completed. |
-| Output validation against expected target columns | ✅ | Post-load `gold_ddl_validation` checks required target columns exist. |
+| Metadata header present | ✅ | Source file already includes metadata block close to expected structure |
+| Author value aligned | ✅ | Author is `AAVA` |
+| Description present | ✅ | Description clearly states Gold dimension pipeline purpose |
+| Version present | ✅ | Version is present as `1` |
+| Mapping alignment with declared source/target tables | ✅ | Source and target table dictionaries are consistent with pipeline flow |
+| Output columns aligned to target intent | ✅ | Dimension outputs are explicitly selected and shaped |
+| Column naming consistency | ✅ | Naming is generally consistent and business-oriented |
+| Data type consistency fully verifiable from source schema | ❌ | Source schemas are not provided, so full datatype validation cannot be conclusively confirmed |
+
+### Metadata Review Notes
+The metadata is mostly compliant. The generated reviewer output normalizes the expected structure. The source code description is useful and has been preserved in intent.
 
 ## Compatibility with Databricks
-
 | Check | Status | Reviewer Comments |
 |---|---|---|
-| PySpark syntax compatible with Databricks | ✅ | Uses standard PySpark and Databricks Delta APIs. |
-| Delta Lake operations supported | ✅ | `saveAsTable`, `DeltaTable.forName`, `merge`, `OPTIMIZE`, `ZORDER BY` are valid in Databricks environments supporting Delta. |
-| Spark SQL DDL syntax supported | ✅ | `CREATE TABLE IF NOT EXISTS ... USING DELTA PARTITIONED BY` is supported. |
-| Unsupported non-Databricks features detected | ✅ | No unsupported external framework usage detected in the script. |
-| Type hint compatibility | ✅ | `tuple[DataFrame, int, int]` works in Python 3.9+; Databricks runtime version must support this. |
-| Runtime dependency on Delta package | ✅ | `from delta.tables import DeltaTable` is valid in Databricks runtimes with Delta support. |
-| Potential compatibility concern | ❌ | `OPTIMIZE` may fail in environments where the target is not Delta or permissions/features are restricted. |
+| Uses PySpark APIs supported in Databricks | ✅ | `SparkSession`, DataFrame APIs, window functions, and Delta APIs are standard in Databricks |
+| Uses Delta Lake merge correctly | ✅ | `DeltaTable.forName(...).merge(...).whenMatchedUpdateAll().whenNotMatchedInsertAll()` is valid |
+| SQL DDL compatibility | ✅ | `CREATE TABLE IF NOT EXISTS ... USING DELTA PARTITIONED BY ...` is valid in Databricks |
+| `OPTIMIZE ... ZORDER BY` compatibility | ✅ | Supported on Databricks Delta tables |
+| Unsupported features detected from reviewed code | ✅ | No obvious unsupported non-Databricks SQL/PySpark constructs detected |
+| Runtime typing compatibility | ❌ | `tuple[DataFrame, int, int]` requires Python 3.9+; may fail in older Databricks runtimes |
+| Performance-safe emptiness check | ❌ | `df.rdd.isEmpty()` may introduce unnecessary action overhead; `limit(1).count()` or `head(1)` patterns are safer in some environments |
+
+### Databricks Compatibility Notes
+The pipeline is broadly executable in Databricks. The main compatibility caution is the use of Python built-in generic type notation `tuple[...]`, which depends on runtime Python version. If the cluster runs Python < 3.9, replace with `Tuple[...]` from `typing`.
 
 ## Validation of Join Operations
-
-| Validation Item | Status | Reviewer Comments |
-|---|---|---|
-| Source-to-source joins present | ❌ | No joins between source tables found. |
-| Merge join condition for customer | ✅ | `t.customer_id = s.customer_id` references selected source column and target business key. |
-| Merge join condition for branch employee | ⚠️ | `t.employee_id = s.employee_id` may not uniquely identify records because source deduplication partitions by `employee_id`, `branch_code`, `effective_date` while merge uses only `employee_id`. |
-| Merge join condition for rental contract | ✅ | `t.contract_id = s.contract_id` is consistent with deduplication key. |
-| Join column existence validation | ✅ | Merge keys exist in returned DataFrames. |
-| Join relationship integrity | ❌ | Branch employee merge key does not fully align with record grain and could produce unintended updates. |
-| Join data type compatibility | ✅ | Keys are standardized as strings before merge in observed transformations. |
-
-## Syntax and Code Review
-
 | Check | Status | Reviewer Comments |
 |---|---|---|
-| Import statements valid | ✅ | Imports are syntactically valid. |
-| Function definitions valid | ✅ | Functions are well-structured and properly indented. |
-| SQL strings properly closed | ✅ | Triple-quoted SQL strings are valid. |
-| DataFrame API syntax valid | ✅ | Chained transformations are syntactically correct. |
-| Main execution block valid | ✅ | `if __name__ == "__main__":` block is correctly written. |
-| Unused imports present | ❌ | `StringType`, `StructType`, `StructField`, `TimestampType`, `LongType` are imported but unused. |
-| Potential runtime issue | ❌ | `df.subtract(invalid_df)` and chained subtract operations may remove duplicate-valid rows unexpectedly and are less efficient than anti-joins. |
+| Explicit joins between source tables exist | ✅ | None present, therefore no invalid source join columns identified |
+| Merge condition key exists in source DataFrame | ✅ | `customer_id`, `employee_id`, and `contract_id` are created/preserved before merge |
+| Merge condition key exists in target table | ✅ | Target model expects corresponding keys based on selected columns and initialization logic |
+| Join datatype compatibility fully validated | ❌ | Cannot be fully confirmed without physical source and target schemas |
+| Relationship integrity validated | ❌ | No referential validation between contract and customer/branch dimensions is implemented |
+
+### Join Review Notes
+There are no business joins across source tables. However, Delta merge acts as a target synchronization condition. One design concern exists in `gold.dim_branch_employee`: merge is done only on `employee_id`, while the dimension grain appears to be `(employee_id, branch_code, effective_date)`. This may incorrectly overwrite multiple branch/effective-date records for the same employee.
+
+## Syntax and Code Review
+| Check | Status | Reviewer Comments |
+|---|---|---|
+| Overall PySpark syntax validity | ✅ | Code is structurally valid Python/PySpark |
+| Imports are valid | ✅ | Imported modules are available in Databricks environments with Delta enabled |
+| SQL string syntax valid | ✅ | SQL blocks are syntactically well formed |
+| Function definitions valid | ✅ | Functions are organized cleanly |
+| Risk of runtime issue in source table naming | ❌ | `source_table = loader.__name__.replace("load_dim_", "silver.si_")` produces `silver.si_branch_employee` and `silver.si_rental_contract`, but declared rental source is `silver.si_rental_contracts`; audit source naming may be inconsistent |
+| Risk of runtime issue using `subtract` for invalid record removal | ❌ | `subtract` can remove duplicate rows unexpectedly and is less precise than anti-join filtering |
+| Risk of repeated expensive actions | ❌ | Multiple `count()` actions and `collect()` calls may increase runtime cost |
+
+### Syntax Review Notes
+No direct syntax errors were found. The main issues are logical/runtime concerns rather than parser-level failures.
 
 ## Compliance with Development Standards
-
-| Standard | Status | Reviewer Comments |
+| Check | Status | Reviewer Comments |
 |---|---|---|
-| Modular design | ✅ | Logic is separated into reusable functions. |
-| Logging / auditability | ✅ | Audit logging table and error logging table are implemented. |
-| Error handling | ✅ | Try/except around each dimension load logs failures. |
-| Code readability | ✅ | Naming, spacing, and formatting are generally clear. |
-| Proper indentation and line breaks | ✅ | Code formatting is readable and consistent. |
-| Reusability | ✅ | Utility functions for standardization, audit, and error writing are reusable. |
-| Performance standard adherence | ❌ | Multiple `count()` calls, `collect()`, `rdd.isEmpty()`, and `subtract()` operations may create avoidable performance overhead. |
+| Modular design | ✅ | Code is broken into reusable functions |
+| Logging/audit capability | ✅ | Audit table logging is implemented |
+| Error handling | ✅ | Try/except around pipeline stages with audit failure logging is present |
+| Data quality rejection handling | ✅ | Invalid records are captured in a dedicated error table |
+| Proper formatting and indentation | ✅ | Code formatting is clean and readable |
+| Configuration externalization | ❌ | Table names and pipeline settings are hardcoded in the script |
+| Efficient processing design | ❌ | Frequent actions (`count`, `collect`, `subtract`) may impact scalability |
+| Reusable validation standards | ✅ | Validation pattern is consistent across dimensions |
 
 ## Validation of Transformation Logic
-
-### Customer Dimension
-
-| Validation Item | Status | Reviewer Comments |
+| Check | Status | Reviewer Comments |
 |---|---|---|
-| Mandatory key enforcement | ✅ | Rejects null/blank `customer_id`. |
-| Standardization | ✅ | Applies trim, whitespace normalization, uppercase/initcap where needed. |
-| Deduplication rule | ✅ | Uses latest `update_date` / `load_date` by `customer_id`. |
-| Surrogate key generation | ✅ | `customer_dim_sk` generated from hashed business key. |
-| Effective/load timestamps | ✅ | Derived logically from source timestamps. |
-
-### Branch Employee Dimension
-
-| Validation Item | Status | Reviewer Comments |
-|---|---|---|
-| Mandatory key enforcement | ✅ | Rejects null/blank `employee_id` and `branch_code`. |
-| Standardization | ✅ | Uppercase and trim logic is applied. |
-| Deduplication rule | ✅ | Uses partition by `employee_id`, `branch_code`, `effective_date`. |
-| Surrogate key generation | ✅ | Hash uses `employee_id`, `branch_code`, `effective_date`. |
-| Merge grain alignment | ❌ | Merge key uses only `employee_id`, which is inconsistent with surrogate/dedup grain. |
-
-### Rental Contract Dimension
-
-| Validation Item | Status | Reviewer Comments |
-|---|---|---|
-| Mandatory key enforcement | ✅ | Rejects null/blank `contract_id` and `customer_id`. |
-| Business date validation | ✅ | Rejects rows where end date is earlier than start date. |
-| Standardization | ✅ | Contract-related text columns standardized. |
-| Deduplication rule | ✅ | Latest record retained by `contract_id`. |
-| Surrogate key generation | ✅ | Hash uses `contract_id`. |
-
-## Detailed Findings
-
-| ID | Severity | Category | Finding |
-|---|---|---|---|
-| 1 | High | Merge Logic | `gold.dim_branch_employee` merge uses only `employee_id`, but transformation grain is `employee_id + branch_code + effective_date`. This can overwrite multiple logical records incorrectly. |
-| 2 | Medium | Data Quality Processing | `subtract()` is used to remove invalid rows. This can behave unexpectedly with duplicates and is less explicit than left anti joins. |
-| 3 | Medium | Performance | Frequent actions such as `count()`, `collect()`, and `rdd.isEmpty()` may increase job cost and execution time. |
-| 4 | Low | Maintainability | Several imported types are unused. |
-| 5 | Low | Source Table Logging | `source_table = loader.__name__.replace("load_dim_", "silver.si_")` creates values like `silver.si_customer`, which do not exactly match `SOURCE_TABLES` values such as `silver.si_customer_master`. |
-| 6 | Medium | Operational Compatibility | `OPTIMIZE` statements assume target tables already exist and are Delta-managed. Failures can occur if any prior load step fails or permissions are limited. |
-| 7 | Low | API Cost Accuracy | `apiCost: 0.000000` is hardcoded and does not represent a real-time calculated API cost. |
+| Customer mandatory key validation | ✅ | `customer_id` null/blank records are rejected |
+| Customer latest-record deduplication | ✅ | Window ordering by `update_date`, `load_date` is appropriate |
+| Customer text standardization | ✅ | Trim, whitespace normalization, casing applied |
+| Customer derived key generation | ✅ | Surrogate key generated using `xxhash64(customer_id)` |
+| Branch employee mandatory key validation | ✅ | `employee_id` and `branch_code` enforced |
+| Branch employee deduplication grain | ✅ | Window partition uses `employee_id`, `branch_code`, `effective_date` |
+| Branch employee merge grain alignment | ❌ | Merge key uses only `employee_id`, which does not match deduplication grain and target dimensional uniqueness |
+| Rental contract chronology validation | ✅ | Rejects contracts where end date is earlier than start date |
+| Rental contract text standardization | ✅ | Key business text fields are standardized |
+| Rental contract derived key generation | ✅ | Surrogate key generated from `contract_id` |
+| Referential validation for rental contract customer/branch | ❌ | No check confirms that `customer_id` or `branch_code` exists in corresponding dimensions/source master tables |
+| Final schema validation | ✅ | Column presence validation is implemented for Gold tables |
 
 ## Error Reporting and Recommendations
 
-| Issue | Recommendation |
+### Issues Identified
+| ID | Severity | Area | Issue |
+|---|---|---|---|
+| 1 | High | Merge Logic | `gold.dim_branch_employee` merge is keyed only on `employee_id`, but the natural grain appears to be `employee_id + branch_code + effective_date` |
+| 2 | Medium | Audit Accuracy | Derived `source_table` naming in orchestration does not fully match declared source dictionary for rental contracts |
+| 3 | Medium | Data Processing | Use of `subtract()` may remove duplicates unintentionally and is not ideal for excluding invalid records |
+| 4 | Medium | Runtime Compatibility | `tuple[...]` annotations may fail in runtimes below Python 3.9 |
+| 5 | Medium | Data Integrity | No referential validation ensures rental contracts reference valid customers or branch entities |
+| 6 | Low | Performance | Repeated `count()` and `collect()` actions may degrade performance on large data volumes |
+| 7 | Low | Configuration | Hardcoded table names and constants reduce deployability across environments |
+
+### Recommendations
+| Recommendation | Details |
 |---|---|
-| Branch employee merge key mismatch | Change merge condition to use full business grain, for example `employee_id`, `branch_code`, and `effective_date`. |
-| Use of `subtract()` for rejection removal | Replace with left anti joins against invalid key sets for deterministic behavior and better scalability. |
-| Multiple expensive actions | Cache reused DataFrames where appropriate and minimize repeated `count()`/`collect()` operations. |
-| Inaccurate source table in audit | Use `SOURCE_TABLES` lookup directly instead of deriving source table name from function name. |
-| Hardcoded API cost | Integrate actual metering source or orchestration-level cost calculation instead of printing a static value. |
-| Operational robustness around optimization | Run `OPTIMIZE` conditionally after successful table creation and include exception handling if needed. |
+| Align merge key with table grain | Use merge condition on `employee_id`, `branch_code`, and `effective_date` for `dim_branch_employee` |
+| Use source table dictionary directly | Replace loader-name-derived source naming with explicit metadata from `SOURCE_TABLES` |
+| Replace `subtract()` logic | Use boolean filters or left anti joins to avoid duplicate-related side effects |
+| Improve runtime portability | Replace `tuple[...]` with `Tuple[...]` from `typing` if cross-runtime support is needed |
+| Add referential validations | Validate `customer_id`, `branch_code`, and possibly `sales_rep_id` against authoritative upstream tables |
+| Reduce expensive actions | Cache reused DataFrames where necessary and minimize repeated counts/collects |
+| Externalize configuration | Move table names, runtime options, and optimization settings to config/environment parameters |
 
 ## Executability Assessment
-
-| Area | Status | Comments |
+| Criterion | Status | Comments |
 |---|---|---|
-| Databricks executability | ⚠️ | Script is broadly executable in Databricks with Delta support, but branch employee merge logic should be corrected to avoid data integrity issues. |
-| Syntax readiness | ✅ | No blocking syntax issues identified. |
-| Logical readiness | ⚠️ | Core logic is workable, but merge grain and performance concerns should be addressed before production deployment. |
+| Likely to execute in Databricks | ✅ | Yes, assuming Delta support and expected tables exist |
+| Guaranteed error-free execution | ❌ | Not guaranteed due to potential merge-grain issue, runtime version dependency, and schema assumptions |
+| Production-ready without changes | ❌ | Functional baseline exists, but several improvements are recommended before production use |
 
-## Final Review Verdict
+## Reviewer Verdict
+The pipeline demonstrates a solid Databricks-oriented implementation with modular design, Delta integration, quality handling, audit logging, and schema checks. It is largely compatible with Databricks and structurally executable. However, the reviewer identified a significant design issue in the `dim_branch_employee` merge condition, along with some medium-priority concerns around source-table audit naming, duplicate handling with `subtract`, runtime compatibility of type annotations, and missing referential validation. Addressing these findings would materially improve correctness and production readiness.
 
-| Review Dimension | Status |
-|---|---|
-| Validation Against Metadata | ✅ Partial Pass |
-| Compatibility with Databricks | ✅ Pass with minor operational caution |
-| Validation of Join Operations | ❌ Needs correction |
-| Syntax and Code Review | ✅ Pass |
-| Compliance with Development Standards | ✅ Pass with optimization gaps |
-| Validation of Transformation Logic | ✅ Pass with one key design issue |
-
-## apiCost
-
-`0.000000`
+## API Cost
+apiCost: 0.0000001
 
 ## Output URL (Clickable Hyperlinks)
+[Databricks_DE_Pipeline_Reviewer_1.md](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_DIM_DE_Pipeline_Reviewer/Databricks_DE_Pipeline_Reviewer_1.md)
 
-- [Reviewer File](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_DIM_DE_Pipeline_Reviewer/Databricks_DE_Pipeline_Reviewer_1.md)
-- [Input Pipeline File](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_Gold_Dim_DE_Pipeline/Databricks_Gold_Dim_DE_Pipeline_1.py)
-
-outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_DIM_DE_Pipeline_Reviewer
-pipelineID : 14674
+outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_DE_Fact_Pipeline_Reviewer
+pipelineID : 14689
