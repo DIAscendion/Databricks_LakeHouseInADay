@@ -1,0 +1,735 @@
+_____________________________________________
+## *Author*: AAVA
+## *Created on*:   
+## *Description*: Physical Gold layer data model for Rental Revenue-to-Cash analytical reporting using Databricks Delta tables, conformed dimensions, facts, aggregates, audit, and error handling.
+## *Version*: 1 
+## *Updated on*: 
+_____________________________________________
+
+# Databricks Gold Model Physical
+
+## 1. Overview
+This document translates the provided Gold logical model and Silver physical model into an implementation-ready Databricks Gold physical data model for the Rental Revenue-to-Cash domain. The Gold layer is designed for dimensional, fact, and aggregated reporting use cases. All Silver business tables and columns are considered in the Gold design, id fields are added to Gold tables, Spark SQL incompatible constraints are excluded, and operational audit and error tables are included.
+
+## 2. Input Analysis
+
+| Input File | Purpose | Physical Modeling Impact |
+|---|---|---|
+| `DI_Databricks_Silver_Model_Physical/Databricks_Silver_Model_Physical_1.md` | Defines conformed Silver physical schema and mandatory Silver business columns | Ensures all Silver columns and required operational structures are represented or traceable in Gold physical design |
+| `DI_Databricks_Gold_Model_Logical/Databricks_Gold_Model_Logical_1.md` | Defines Gold logical entities, dimensions, facts, aggregates, audit, and error structures | Drives Gold table inventory, business grain, metrics, and relationship mapping |
+
+## 3. Gold Layer Physical Design Principles
+- Gold tables are created using `CREATE TABLE IF NOT EXISTS` and `USING DELTA`.
+- Gold layer includes dimension, fact, aggregate, error, and audit tables.
+- Every Gold table includes an id field as required by the instruction.
+- No primary keys, foreign keys, unique constraints, generated identity clauses, or Spark-incompatible constraints are included.
+- Datatypes are aligned for Databricks Spark SQL compatibility.
+- `VARCHAR`, `DATE`, `TIMESTAMP`, `INT`, `BIGINT`, and `DECIMAL` are used; `TEXT`, `DATETIME`, and identity syntax are avoided.
+- Standard metadata columns are included in each table: `load_date`, `update_date`, and `source_system`.
+- Additional lineage fields are included where useful for reconciliation with Silver.
+- Partitioning is selected based on reporting date, snapshot date, status, or low-cardinality domains.
+- Traditional indexes are not implemented in Spark SQL; Delta optimization and Z-Ordering recommendations are provided instead.
+
+## 4. Identified Sources, Transformations, Joins, Aggregations, Filters, and Outputs
+
+### 4.1 Source Tables from Silver
+- `silver.si_rental_contracts`
+- `silver.si_invoices`
+- `silver.si_cash_receipts`
+- `silver.si_customer_master`
+- `silver.si_branch_employee`
+- `silver.si_data_quality_errors`
+- `silver.si_process_audit`
+
+### 4.2 Gold Transformations
+- Build conformed dimensions for date, region, branch, customer, sales representative, collector, equipment class, contract, and invoice.
+- Derive aging buckets and days past due from invoice and payment timing logic.
+- Aggregate invoice and contract measures into rental revenue metrics.
+- Aggregate outstanding receivables into AR aging snapshots.
+- Aggregate receipts and applications into cash application performance metrics.
+- Derive customer exposure and limit utilization into credit risk facts.
+- Roll up fact metrics into executive health score and billing performance aggregates.
+- Capture Gold validation failures in a Gold error data table.
+- Capture Gold pipeline execution events in a Gold audit table.
+
+### 4.3 Expected Joins in Gold Processing
+
+| Left Table | Join Field | Right Table | Purpose |
+|---|---|---|---|
+| `silver.si_rental_contracts` | `customer_id` | `silver.si_customer_master.customer_id` | Build customer and contract context |
+| `silver.si_rental_contracts` | `sales_rep_id` | `silver.si_branch_employee.employee_id` | Build sales rep assignment |
+| `silver.si_rental_contracts` | `branch_code` | `silver.si_branch_employee.branch_code` | Build branch and regional context |
+| `silver.si_invoices` | `contract_id` | `silver.si_rental_contracts.contract_id` | Associate invoices to contracts |
+| `silver.si_invoices` | `customer_id` | `silver.si_customer_master.customer_id` | Associate invoices to customers |
+| `silver.si_cash_receipts` | `invoice_id` | `silver.si_invoices.invoice_id` | Associate payments to invoices |
+| `silver.si_cash_receipts` | `customer_id` | `silver.si_customer_master.customer_id` | Associate payments to customers |
+| `gold.go_fct_rental_revenue` | `reporting_date` | `gold.go_dim_date.reporting_date` | Time conformance |
+| `gold.go_fct_ar_aging` | `aging_bucket` | `gold.go_code_aging_bucket.aging_bucket_name` | Bucket conformance |
+
+### 4.4 Aggregations
+- Daily and period rental revenue, gross billings, credit memo effect, net billings, invoice count.
+- Snapshot AR exposure, 90+ bucket concentration, DSO, best possible DSO, aging bucket balances.
+- Payment collections, unapplied cash, average days to pay, on-time payment ratio, collection effectiveness.
+- Customer-level credit utilization, over-limit exposure, open contract exposure.
+- Executive score rollups across network, region, branch, sales rep, and collector levels.
+- Billing performance rollups by region, branch, sales rep, and equipment class.
+
+### 4.5 Filters and Data Quality Rules
+- Exclude or route invalid mandatory records to Gold error table.
+- Derive aging bucket only from approved values: `0-30`, `31-60`, `61-90`, `90+`.
+- Prevent divide-by-zero during metric derivation.
+- Flag records where payment exceeds invoice amount.
+- Flag records where gross billings minus credit memo does not reconcile to net billings.
+- Flag negative financial measures where business rules require non-negative values.
+
+### 4.6 Output Format
+- Delta tables in Databricks Gold schema.
+- Text artifact stored in GitHub output folder.
+
+## 5. Gold Layer DDL Scripts
+
+### 5.1 Dimension Tables
+
+#### 5.1.1 Date Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_date (
+  dim_date_sk BIGINT,
+  reporting_date DATE,
+  reporting_period VARCHAR(50),
+  period_type VARCHAR(30),
+  number_of_days_in_period INT,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (period_type);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_date ZORDER BY (reporting_date, reporting_period)`.
+
+#### 5.1.2 Region Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_region (
+  dim_region_sk BIGINT,
+  region_name VARCHAR(100),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA;
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_region ZORDER BY (region_name)`.
+
+#### 5.1.3 Branch Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_branch (
+  dim_branch_sk BIGINT,
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  branch_status VARCHAR(50),
+  region_name VARCHAR(100),
+  organization_hierarchy_name VARCHAR(150),
+  network_level VARCHAR(100),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (branch_status);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_branch ZORDER BY (branch_code, branch_name, region_name)`.
+
+#### 5.1.4 Customer Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_customer (
+  dim_customer_sk BIGINT,
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  customer_status VARCHAR(50),
+  credit_terms VARCHAR(50),
+  credit_limit DECIMAL(18,2),
+  customer_since_date DATE,
+  collector_id VARCHAR(50),
+  collector_name VARCHAR(150),
+  sales_rep_id VARCHAR(50),
+  sales_rep_name VARCHAR(150),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  region_name VARCHAR(100),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (customer_status);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_customer ZORDER BY (customer_id, customer_name, branch_code)`.
+
+#### 5.1.5 Sales Representative Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_sales_rep (
+  dim_sales_rep_sk BIGINT,
+  sales_rep_id VARCHAR(50),
+  sales_rep_name VARCHAR(150),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  region_name VARCHAR(100),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (region_name);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_sales_rep ZORDER BY (sales_rep_id, branch_code)`.
+
+#### 5.1.6 Collector Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_collector (
+  dim_collector_sk BIGINT,
+  collector_id VARCHAR(50),
+  collector_name VARCHAR(150),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  region_name VARCHAR(100),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (region_name);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_collector ZORDER BY (collector_id, branch_code)`.
+
+#### 5.1.7 Equipment Class Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_equipment_class (
+  dim_equipment_class_sk BIGINT,
+  equipment_class_code VARCHAR(50),
+  equipment_class_name VARCHAR(150),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA;
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_equipment_class ZORDER BY (equipment_class_name)`.
+
+#### 5.1.8 Contract Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_contract (
+  dim_contract_sk BIGINT,
+  contract_id VARCHAR(50),
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  region_name VARCHAR(100),
+  sales_rep_id VARCHAR(50),
+  sales_rep_name VARCHAR(150),
+  equipment_class VARCHAR(100),
+  equipment_class_name VARCHAR(150),
+  contract_start_date DATE,
+  contract_end_date DATE,
+  contract_status VARCHAR(50),
+  daily_rate DECIMAL(18,2),
+  open_contract_count INT,
+  open_contract_value DECIMAL(18,2),
+  total_billed_rental_days INT,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (contract_status);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_contract ZORDER BY (contract_id, customer_id, branch_code)`.
+
+#### 5.1.9 Invoice Dimension
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_dim_invoice (
+  dim_invoice_sk BIGINT,
+  invoice_id VARCHAR(50),
+  contract_id VARCHAR(50),
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  invoice_date DATE,
+  due_date DATE,
+  invoice_amount DECIMAL(18,2),
+  tax_amount DECIMAL(18,2),
+  invoice_type VARCHAR(50),
+  currency VARCHAR(20),
+  aging_bucket VARCHAR(20),
+  days_past_due INT,
+  match_status VARCHAR(50),
+  contract_status VARCHAR(50),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (invoice_date);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_dim_invoice ZORDER BY (invoice_id, customer_id, contract_id, due_date)`.
+
+### 5.2 Code Tables
+
+#### 5.2.1 Aging Bucket Code Table
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_code_aging_bucket (
+  aging_bucket_sk BIGINT,
+  aging_bucket_name VARCHAR(20),
+  bucket_sequence INT,
+  bucket_definition VARCHAR(200),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA;
+```
+
+#### 5.2.2 Period Type Code Table
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_code_period_type (
+  period_type_sk BIGINT,
+  period_type_name VARCHAR(30),
+  period_type_description VARCHAR(200),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA;
+```
+
+### 5.3 Fact Tables
+
+#### 5.3.1 Rental Revenue Fact
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_fct_rental_revenue (
+  fct_rental_revenue_sk BIGINT,
+  reporting_date DATE,
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  region_name VARCHAR(100),
+  sales_rep_id VARCHAR(50),
+  sales_rep_name VARCHAR(150),
+  equipment_class VARCHAR(100),
+  equipment_class_name VARCHAR(150),
+  contract_id VARCHAR(50),
+  contract_status VARCHAR(50),
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  rental_revenue DECIMAL(18,2),
+  gross_billings DECIMAL(18,2),
+  credit_memo_amount DECIMAL(18,2),
+  net_billings DECIMAL(18,2),
+  invoice_count INT,
+  average_daily_rate DECIMAL(18,4),
+  revenue_per_contract DECIMAL(18,4),
+  credit_memo_rate DECIMAL(18,6),
+  trend_value DECIMAL(18,4),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (reporting_date);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_fct_rental_revenue ZORDER BY (branch_code, customer_id, contract_id, sales_rep_id)`.
+
+#### 5.3.2 AR Aging Fact
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_fct_ar_aging (
+  fct_ar_aging_sk BIGINT,
+  snapshot_date DATE,
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  collector_id VARCHAR(50),
+  collector_name VARCHAR(150),
+  aging_bucket VARCHAR(20),
+  total_ar_outstanding DECIMAL(18,2),
+  ar_90_plus_amount DECIMAL(18,2),
+  ar_90_plus_percentage DECIMAL(18,6),
+  best_possible_dso DECIMAL(18,4),
+  dso DECIMAL(18,4),
+  dso_trend DECIMAL(18,4),
+  ar_aging_by_bucket DECIMAL(18,2),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (snapshot_date);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_fct_ar_aging ZORDER BY (customer_id, branch_code, collector_id, aging_bucket)`.
+
+#### 5.3.3 Cash Application Fact
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_fct_cash_application (
+  fct_cash_application_sk BIGINT,
+  reporting_date DATE,
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  collector_id VARCHAR(50),
+  collector_name VARCHAR(150),
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  invoice_id VARCHAR(50),
+  payment_method VARCHAR(50),
+  match_status VARCHAR(50),
+  cash_collected DECIMAL(18,2),
+  collection_effectiveness_index DECIMAL(18,6),
+  average_days_to_pay DECIMAL(18,4),
+  invoices_paid_on_time_percentage DECIMAL(18,6),
+  unapplied_cash_amount DECIMAL(18,2),
+  unapplied_cash_percentage DECIMAL(18,6),
+  payment_amount DECIMAL(18,2),
+  payment_date DATE,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (reporting_date);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_fct_cash_application ZORDER BY (customer_id, invoice_id, collector_id, branch_code)`.
+
+#### 5.3.4 Credit Risk Fact
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_fct_credit_risk (
+  fct_credit_risk_sk BIGINT,
+  snapshot_date DATE,
+  customer_id VARCHAR(50),
+  customer_name VARCHAR(200),
+  branch_code VARCHAR(50),
+  branch_name VARCHAR(150),
+  customer_status VARCHAR(50),
+  outstanding_ar DECIMAL(18,2),
+  credit_limit DECIMAL(18,2),
+  credit_utilization_percentage DECIMAL(18,6),
+  customers_over_limit_count INT,
+  customers_over_limit_amount DECIMAL(18,2),
+  suspended_customers_with_open_exposure INT,
+  ar_90_plus_amount_by_customer DECIMAL(18,2),
+  open_contract_count INT,
+  open_contract_value DECIMAL(18,2),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (snapshot_date);
+```
+
+**Optimization Guidance:**
+- Use `OPTIMIZE gold.go_fct_credit_risk ZORDER BY (customer_id, branch_code, customer_status)`.
+
+### 5.4 Error Data Table DDL Script
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_error_data (
+  error_sk BIGINT,
+  pipeline_name VARCHAR(150),
+  error_detected_date TIMESTAMP,
+  source_system VARCHAR(100),
+  source_table_name VARCHAR(150),
+  target_table_name VARCHAR(150),
+  validation_rule_name VARCHAR(150),
+  validation_rule_description VARCHAR(500),
+  error_severity VARCHAR(30),
+  error_status VARCHAR(30),
+  error_record_summary VARCHAR(1000),
+  corrective_action VARCHAR(500),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  layer_name VARCHAR(30)
+)
+USING DELTA
+PARTITIONED BY (error_status);
+```
+
+**Purpose:** Stores validation failures, business rule exceptions, reconciliation issues, and Gold processing errors.
+
+### 5.5 Audit Table DDL Script
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_process_audit (
+  audit_sk BIGINT,
+  pipeline_name VARCHAR(150),
+  pipeline_run_date TIMESTAMP,
+  layer_name VARCHAR(30),
+  source_system VARCHAR(100),
+  source_table_name VARCHAR(150),
+  target_table_name VARCHAR(150),
+  process_status VARCHAR(30),
+  records_read_count DECIMAL(18,0),
+  records_written_count DECIMAL(18,0),
+  records_rejected_count DECIMAL(18,0),
+  process_start_time TIMESTAMP,
+  process_end_time TIMESTAMP,
+  processing_duration_seconds DECIMAL(18,2),
+  audit_message VARCHAR(1000),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP
+)
+USING DELTA
+PARTITIONED BY (process_status);
+```
+
+**Purpose:** Stores pipeline execution history, processing metrics, start and end times, status, and error messages.
+
+### 5.6 Aggregated Tables DDL Script
+
+#### 5.6.1 Executive Health Score Aggregate
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_agg_executive_health_score (
+  agg_executive_health_score_sk BIGINT,
+  reporting_date DATE,
+  network_level VARCHAR(100),
+  region_name VARCHAR(100),
+  branch_name VARCHAR(150),
+  sales_rep_name VARCHAR(150),
+  collector_name VARCHAR(150),
+  overall_revenue_to_cash_health_score DECIMAL(18,4),
+  rental_revenue DECIMAL(18,2),
+  dso DECIMAL(18,4),
+  ar_90_plus_percentage DECIMAL(18,6),
+  collection_effectiveness_index DECIMAL(18,6),
+  unapplied_cash_percentage DECIMAL(18,6),
+  credit_utilization_percentage DECIMAL(18,6),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (reporting_date);
+```
+
+#### 5.6.2 Billing Performance Aggregate
+```sql
+CREATE TABLE IF NOT EXISTS gold.go_agg_billing_performance (
+  agg_billing_performance_sk BIGINT,
+  reporting_date DATE,
+  region_name VARCHAR(100),
+  branch_name VARCHAR(150),
+  sales_rep_name VARCHAR(150),
+  equipment_class_name VARCHAR(150),
+  gross_billings DECIMAL(18,2),
+  credit_memo_amount DECIMAL(18,2),
+  net_billings DECIMAL(18,2),
+  rental_revenue DECIMAL(18,2),
+  average_daily_rate DECIMAL(18,4),
+  revenue_per_contract DECIMAL(18,4),
+  credit_memo_rate DECIMAL(18,6),
+  invoice_count INT,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system VARCHAR(100)
+)
+USING DELTA
+PARTITIONED BY (reporting_date);
+```
+
+### 5.7 Update DDL Script
+```sql
+ALTER TABLE gold.go_dim_customer ADD COLUMNS (
+  over_limit_indicator VARCHAR(10)
+);
+
+ALTER TABLE gold.go_dim_invoice ADD COLUMNS (
+  invoice_status VARCHAR(50)
+);
+
+ALTER TABLE gold.go_fct_rental_revenue ADD COLUMNS (
+  billed_rental_days INT
+);
+
+ALTER TABLE gold.go_fct_cash_application ADD COLUMNS (
+  unapplied_payment_count INT
+);
+
+ALTER TABLE gold.go_fct_credit_risk ADD COLUMNS (
+  risk_category VARCHAR(50)
+);
+
+ALTER TABLE gold.go_process_audit ADD COLUMNS (
+  run_id VARCHAR(100)
+);
+
+ALTER TABLE gold.go_error_data ADD COLUMNS (
+  source_record_id VARCHAR(100)
+);
+```
+
+## 6. Table-by-Table Physical Model Summary
+
+| Table Name | Type | Grain | Added ID Field | Storage Format | Recommended Z-Order |
+|---|---|---|---|---|---|
+| `gold.go_dim_date` | Dimension | One row per reporting date/period type | `dim_date_sk` | Delta | `reporting_date, reporting_period` |
+| `gold.go_dim_region` | Dimension | One row per region | `dim_region_sk` | Delta | `region_name` |
+| `gold.go_dim_branch` | Dimension | One row per branch version | `dim_branch_sk` | Delta | `branch_code, branch_name, region_name` |
+| `gold.go_dim_customer` | Dimension | One row per customer version | `dim_customer_sk` | Delta | `customer_id, customer_name, branch_code` |
+| `gold.go_dim_sales_rep` | Dimension | One row per sales rep | `dim_sales_rep_sk` | Delta | `sales_rep_id, branch_code` |
+| `gold.go_dim_collector` | Dimension | One row per collector | `dim_collector_sk` | Delta | `collector_id, branch_code` |
+| `gold.go_dim_equipment_class` | Dimension | One row per equipment class | `dim_equipment_class_sk` | Delta | `equipment_class_name` |
+| `gold.go_dim_contract` | Dimension | One row per contract version | `dim_contract_sk` | Delta | `contract_id, customer_id, branch_code` |
+| `gold.go_dim_invoice` | Dimension | One row per invoice | `dim_invoice_sk` | Delta | `invoice_id, customer_id, contract_id, due_date` |
+| `gold.go_code_aging_bucket` | Code | One row per allowed aging bucket | `aging_bucket_sk` | Delta | `aging_bucket_name` |
+| `gold.go_code_period_type` | Code | One row per period type | `period_type_sk` | Delta | `period_type_name` |
+| `gold.go_fct_rental_revenue` | Fact | One row per reporting date/contract level revenue summary | `fct_rental_revenue_sk` | Delta | `branch_code, customer_id, contract_id, sales_rep_id` |
+| `gold.go_fct_ar_aging` | Fact | One row per snapshot/customer/bucket | `fct_ar_aging_sk` | Delta | `customer_id, branch_code, collector_id, aging_bucket` |
+| `gold.go_fct_cash_application` | Fact | One row per reporting date/payment application grain | `fct_cash_application_sk` | Delta | `customer_id, invoice_id, collector_id, branch_code` |
+| `gold.go_fct_credit_risk` | Fact | One row per snapshot/customer exposure | `fct_credit_risk_sk` | Delta | `customer_id, branch_code, customer_status` |
+| `gold.go_agg_executive_health_score` | Aggregate | One row per reporting date and executive summary combination | `agg_executive_health_score_sk` | Delta | `reporting_date, region_name, branch_name` |
+| `gold.go_agg_billing_performance` | Aggregate | One row per reporting date/billing summary combination | `agg_billing_performance_sk` | Delta | `reporting_date, region_name, branch_name, sales_rep_name` |
+| `gold.go_error_data` | Error | One row per Gold validation error | `error_sk` | Delta | `source_table_name, target_table_name` |
+| `gold.go_process_audit` | Audit | One row per Gold pipeline execution event | `audit_sk` | Delta | `pipeline_name, target_table_name` |
+
+## 7. Data Retention Policies
+
+### 7.1 Retention Periods for the Gold Layer
+| Table Category | Retention Period | Rationale |
+|---|---|---|
+| Gold dimensions | 7 years | Supports historical governed analytics and finance reporting traceability |
+| Gold facts | 7 years | Supports long-range trend analysis, financial comparisons, and compliance reporting |
+| Gold aggregates | 5 years | Supports executive reporting while permitting recomputation from facts if needed |
+| Gold error data | 2 years | Supports remediation analysis and validation history |
+| Gold process audit | 2 years | Supports operational auditability and SLA investigation |
+
+### 7.2 Archiving Strategies
+- Archive partitions older than retention threshold to lower-cost cloud storage while preserving replay capability.
+- Recompute aggregates from retained facts where business policy allows rather than preserving all pre-aggregated data indefinitely.
+- Apply Delta `VACUUM` only in accordance with enterprise governance and log retention requirements.
+- Preserve summarized audit and error trends before archival for operational dashboards.
+- Use date-driven archival on `reporting_date`, `snapshot_date`, or metadata timestamps depending on table grain.
+
+## 8. Databricks Spark SQL Limitations Considered
+The following items are intentionally not included because they are incompatible with or not preferred for Databricks Spark SQL physical modeling:
+- No primary key constraints.
+- No foreign key constraints.
+- No unique constraints.
+- No check constraints enforced in DDL.
+- No `GENERATED ALWAYS AS IDENTITY` syntax.
+- No `TEXT` datatype.
+- No `DATETIME` datatype.
+- No traditional RDBMS index definitions.
+
+Instead, Delta partitioning, `OPTIMIZE`, and Z-Ordering are used.
+
+## 9. Assumptions and Design Decisions
+1. The Silver physical model is treated as the physical source baseline, and Gold design preserves the relevant business attributes required for analytical consumption.
+2. Additional descriptive columns such as `branch_code`, `customer_id`, `sales_rep_id`, and `collector_id` are retained in Gold physical tables to support traceability and dimensional joins.
+3. Because the prompt requires id fields in the Gold physical model, surrogate-style id columns are added to every Gold table without using identity generation syntax.
+4. Invoice matching status and days past due are treated as derivable Gold attributes from Silver invoice and receipt data.
+5. Credit memo measures are modeled in Gold facts and aggregates even though not explicitly present in current Silver physical DDL, because they are required by the Gold logical model and may be derived from invoice type and billing adjustment logic.
+6. Error and audit tables are implemented in the Gold layer separately from Silver, as explicitly required.
+7. Branch and region naming attributes are assumed to be standardized during Gold conformance from employee and contract mappings.
+8. `VARCHAR` is used in DDL text for compliance with the instruction even though Databricks typically treats string-compatible text as `STRING` internally.
+9. Conceptual relationships are documented as business-key relationships only and not enforced through constraints.
+
+## 10. Conceptual Data Model Diagram in Tabular Form
+
+| Source Table | Connected To Table | Key Field Used for Connection | Relationship Description |
+|---|---|---|---|
+| `gold.go_dim_region` | `gold.go_dim_branch` | `region_name` | One region connects to many branches by `region_name`. |
+| `gold.go_dim_branch` | `gold.go_dim_customer` | `branch_code` | One branch connects to many customers by `branch_code`. |
+| `gold.go_dim_branch` | `gold.go_dim_sales_rep` | `branch_code` | One branch connects to many sales representatives by `branch_code`. |
+| `gold.go_dim_branch` | `gold.go_dim_collector` | `branch_code` | One branch connects to many collectors by `branch_code`. |
+| `gold.go_dim_customer` | `gold.go_dim_contract` | `customer_id` | One customer connects to many contracts by `customer_id`. |
+| `gold.go_dim_sales_rep` | `gold.go_dim_contract` | `sales_rep_id` | One sales representative connects to many contracts by `sales_rep_id`. |
+| `gold.go_dim_equipment_class` | `gold.go_dim_contract` | `equipment_class_name` | One equipment class connects to many contracts by `equipment_class_name`. |
+| `gold.go_dim_contract` | `gold.go_dim_invoice` | `contract_id` | One contract connects to many invoices by `contract_id`. |
+| `gold.go_dim_customer` | `gold.go_dim_invoice` | `customer_id` | One customer connects to many invoices by `customer_id`. |
+| `gold.go_dim_date` | `gold.go_fct_rental_revenue` | `reporting_date` | One date connects to many rental revenue fact rows by `reporting_date`. |
+| `gold.go_dim_branch` | `gold.go_fct_rental_revenue` | `branch_code` | One branch connects to many rental revenue fact rows by `branch_code`. |
+| `gold.go_dim_sales_rep` | `gold.go_fct_rental_revenue` | `sales_rep_id` | One sales rep connects to many rental revenue fact rows by `sales_rep_id`. |
+| `gold.go_dim_contract` | `gold.go_fct_rental_revenue` | `contract_id` | One contract connects to many rental revenue fact rows by `contract_id`. |
+| `gold.go_dim_customer` | `gold.go_fct_ar_aging` | `customer_id` | One customer connects to many AR aging fact rows by `customer_id`. |
+| `gold.go_dim_collector` | `gold.go_fct_ar_aging` | `collector_id` | One collector connects to many AR aging fact rows by `collector_id`. |
+| `gold.go_code_aging_bucket` | `gold.go_fct_ar_aging` | `aging_bucket` | One aging bucket code connects to many AR aging fact rows by `aging_bucket`. |
+| `gold.go_dim_customer` | `gold.go_fct_cash_application` | `customer_id` | One customer connects to many cash application fact rows by `customer_id`. |
+| `gold.go_dim_collector` | `gold.go_fct_cash_application` | `collector_id` | One collector connects to many cash application fact rows by `collector_id`. |
+| `gold.go_dim_invoice` | `gold.go_fct_cash_application` | `invoice_id` | One invoice connects to many cash application fact rows by `invoice_id`. |
+| `gold.go_dim_customer` | `gold.go_fct_credit_risk` | `customer_id` | One customer connects to many credit risk fact rows by `customer_id`. |
+| `gold.go_dim_branch` | `gold.go_fct_credit_risk` | `branch_code` | One branch connects to many credit risk fact rows by `branch_code`. |
+| `gold.go_fct_rental_revenue` | `gold.go_agg_billing_performance` | `reporting_date, branch_name, sales_rep_name, equipment_class_name` | Rental revenue fact rolls into billing performance aggregate. |
+| `gold.go_fct_rental_revenue` | `gold.go_agg_executive_health_score` | `reporting_date, branch_name, region_name` | Rental revenue fact contributes to executive health score. |
+| `gold.go_fct_ar_aging` | `gold.go_agg_executive_health_score` | `snapshot_date/reporting_date, branch_name` | AR aging fact contributes to executive health score. |
+| `gold.go_fct_cash_application` | `gold.go_agg_executive_health_score` | `reporting_date, branch_name, collector_name` | Cash application fact contributes to executive health score. |
+| `gold.go_fct_credit_risk` | `gold.go_agg_executive_health_score` | `snapshot_date/reporting_date, branch_name` | Credit risk fact contributes to executive health score. |
+| `gold.go_process_audit` | `All Gold Tables` | `target_table_name` | Audit records connect pipeline runs to target Gold tables. |
+| `gold.go_error_data` | `All Gold Tables` | `target_table_name` | Error records connect validation failures to affected Gold tables. |
+
+## 11. ER Diagram Visualization Graph for All Output Tables
+```text
+[go_dim_region] --region_name--> [go_dim_branch]
+[go_dim_branch] --branch_code--> [go_dim_customer]
+[go_dim_branch] --branch_code--> [go_dim_sales_rep]
+[go_dim_branch] --branch_code--> [go_dim_collector]
+[go_dim_customer] --customer_id--> [go_dim_contract]
+[go_dim_sales_rep] --sales_rep_id--> [go_dim_contract]
+[go_dim_equipment_class] --equipment_class_name--> [go_dim_contract]
+[go_dim_contract] --contract_id--> [go_dim_invoice]
+[go_dim_customer] --customer_id--> [go_dim_invoice]
+[go_dim_date] --reporting_date--> [go_fct_rental_revenue]
+[go_dim_branch] --branch_code--> [go_fct_rental_revenue]
+[go_dim_sales_rep] --sales_rep_id--> [go_fct_rental_revenue]
+[go_dim_contract] --contract_id--> [go_fct_rental_revenue]
+[go_dim_customer] --customer_id--> [go_fct_ar_aging]
+[go_dim_collector] --collector_id--> [go_fct_ar_aging]
+[go_code_aging_bucket] --aging_bucket_name--> [go_fct_ar_aging]
+[go_dim_customer] --customer_id--> [go_fct_cash_application]
+[go_dim_collector] --collector_id--> [go_fct_cash_application]
+[go_dim_invoice] --invoice_id--> [go_fct_cash_application]
+[go_dim_customer] --customer_id--> [go_fct_credit_risk]
+[go_dim_branch] --branch_code--> [go_fct_credit_risk]
+[go_fct_rental_revenue] --reporting_date/branch_name/sales_rep_name/equipment_class_name--> [go_agg_billing_performance]
+[go_fct_rental_revenue] --reporting_date/branch_name/region_name--> [go_agg_executive_health_score]
+[go_fct_ar_aging] --snapshot_date/branch_name--> [go_agg_executive_health_score]
+[go_fct_cash_application] --reporting_date/branch_name/collector_name--> [go_agg_executive_health_score]
+[go_fct_credit_risk] --snapshot_date/branch_name--> [go_agg_executive_health_score]
+[go_process_audit] --target_table_name--> [all_gold_tables]
+[go_error_data] --target_table_name--> [all_gold_tables]
+```
+
+## 12. Implementation Notes
+- Use Silver tables as the canonical curated input into Gold transformations.
+- Use incremental `MERGE` patterns where appropriate for dimensions and snapshot facts.
+- Recompute metrics with denominator checks to avoid divide-by-zero errors.
+- Apply Delta `OPTIMIZE` and `VACUUM` per enterprise policy.
+- Maintain version history of this artifact in GitHub and never overwrite prior versions during updates.
+
+## 13. apiCost
+apiCost: 0.000000
+
+---
+
+## Output URL (Clickable Hyperlinks)
+[Databricks_Gold_Model_Physical_1.txt](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_Gold_Model_Physical/Databricks_Gold_Model_Physical_1.txt)
+
+outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Silver_Model_Physical
+pipelineID : 12372
