@@ -1,80 +1,86 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*: Physical Silver layer data model for Rental Revenue-to-Cash cleansed, conformed, Delta-based tables with error and audit handling.
-## *Version*: 1 
+## *Description*: Physical Silver layer data model for cleansed, conformed, and audit-ready Rental Revenue-to-Cash Delta tables.
+## *Version*: 1
 ## *Updated on*: 
 _____________________________________________
 
 # Databricks Silver Model Physical
 
 ## 1. Overview
-This document translates the provided conceptual model, constraints, Bronze physical model, and Silver logical model into an implementation-ready Databricks Silver physical data model for the Rental Revenue-to-Cash domain. The Silver layer standardizes Bronze data, retains all Bronze table columns, adds surrogate id fields, introduces data quality error handling, and supports downstream analytical processing in accordance with Medallion architecture principles.
+This document translates the Rental Revenue-to-Cash conceptual model, business constraints, Bronze physical model, and Silver logical model into an implementation-ready Silver physical data model for Databricks. The Silver layer stores standardized, validated, conformed, and analytics-ready data in Delta Lake while preserving Bronze lineage, adding surrogate id fields, supporting exception handling, and enabling downstream Gold reporting for revenue, AR aging, cash application, and credit risk.
 
 ## 2. Input Analysis
 
-| Input File | Purpose | Key Physical Modeling Impact |
-|---|---|---|
-| `DI_Databricks_Model_Conceptual_Constraints/Rental_Revenue_to_Cash_Reports_Conceptual_1.md` | Defines business entities, KPIs, and conceptual relationships | Drives entity coverage, conformed business naming, and relationship documentation |
-| `DI_Databricks_Model_Conceptual_Constraints/Rental_Revenue_to_Cash_Reports_Constraints_1.md` | Defines mandatory fields, rules, dependencies, and integrity expectations | Drives validation-aware design, error table structure, and datatype decisions |
-| `DI_Databricks_Bronze_Model_Physical/Databricks_Bronze_Model_Physical_1.md` | Defines Bronze raw physical schema | All Bronze columns are retained in Silver with additional id fields and standardized datatypes |
-| `DI_Databricks_Silver_Model_Logical/Databricks_Silver_Logical_Data_Model_1.md` | Defines Silver logical structures and support tables | Drives Silver table intent, conformed structure, and audit/error table coverage |
-
-## 3. Silver Layer Physical Design Principles
-- Silver tables preserve all Bronze business columns.
-- Each core Silver table includes an added surrogate id field.
-- No primary keys, foreign keys, unique constraints, or Spark-incompatible constraints are included.
-- All tables are created with `CREATE TABLE IF NOT EXISTS` and `USING DELTA`.
-- Standard metadata columns are included in each business table:
-  - `load_date TIMESTAMP`
-  - `update_date TIMESTAMP`
-  - `source_system STRING`
-- Datatypes are aligned to Databricks Spark SQL compatibility.
-- Partitioning is selected for operational scalability and common access patterns.
-- Delta Lake is the storage format for all Silver tables.
-- Error and audit tables are included for both data validation support and pipeline observability.
-
-## 4. Identified Sources, Transformations, Joins, Filters, and Outputs
-
-### 4.1 Source Tables from Bronze
-- `bronze.bz_rental_contracts`
-- `bronze.bz_invoices`
-- `bronze.bz_cash_receipts`
-- `bronze.bz_customer_master`
-- `bronze.bz_branch_employee`
-- `bronze.bz_audit_log`
-
-### 4.2 Core Silver Transformations
-- Standardize date strings into `DATE` columns where applicable.
-- Preserve raw business identifiers from Bronze and add Silver surrogate keys.
-- Normalize financial precision to `DECIMAL(18,2)` where needed.
-- Standardize status and domain fields for downstream conformance.
-- Route invalid and rejected records to the Silver error table.
-- Record execution details in the Silver audit table.
-
-### 4.3 Expected Joins in Silver Processing
-| Left Table | Join Field | Right Table | Purpose |
+| Input File | Layer | Purpose | Physical Modeling Impact |
 |---|---|---|---|
-| `silver.si_rental_contracts` | `customer_id` | `silver.si_customer_master` | Conform contract-to-customer context |
-| `silver.si_rental_contracts` | `sales_rep_id` | `silver.si_branch_employee.employee_id` | Align contracts to sales representatives |
-| `silver.si_invoices` | `contract_id` | `silver.si_rental_contracts.contract_id` | Align invoices to contracts |
-| `silver.si_invoices` | `customer_id` | `silver.si_customer_master.customer_id` | Align invoices to customer context |
-| `silver.si_cash_receipts` | `invoice_id` | `silver.si_invoices.invoice_id` | Align receipts to invoice application |
-| `silver.si_cash_receipts` | `customer_id` | `silver.si_customer_master.customer_id` | Align receipts to customers |
-| `silver.si_branch_employee` | `branch_code` | `silver.si_rental_contracts.branch_code` | Support branch-level sales and collections analytics |
+| `DI_Databricks_Model_Conceptual_Constraints/Rental_Revenue_to_Cash_Reports_Conceptual_1.md` | Conceptual | Defines business entities, KPIs, and relationships | Drives entity coverage, relationship mapping, and analytical alignment |
+| `DI_Databricks_Model_Conceptual_Constraints/Rental_Revenue_to_Cash_Reports_Constraints_1.md` | Constraints | Defines mandatory fields, rules, dependencies, and referential expectations | Drives validation, exception design, audit design, and assumptions |
+| `DI_Databricks_Bronze_Model_Physical/Databricks_Bronze_Model_Physical_1.md` | Bronze Physical | Defines authoritative Bronze raw tables and columns | All Bronze columns must be preserved in Silver physical tables, with additional id fields and standardized types |
+| `DI_Databricks_Silver_Model_Logical/Databricks_Silver_Logical_Data_Model_1.md` | Silver Logical | Defines Silver logical entities and exception/audit structures | Drives Silver naming, conformance rules, and logical-to-physical mapping |
 
-### 4.4 Business Filters and Validation Conditions
-- Reject records with non-parsable required dates into error table.
-- Reject records with null mandatory business values where mandated by rules.
-- Flag invalid domain values such as unsupported aging buckets or statuses.
-- Flag negative values where business rules require non-negative amounts.
-- Preserve source lineage columns for remediation and replay.
+## 3. Identified Data Sources, Targets, Transformations, Joins, Filters, and Outputs
 
-### 4.5 Output Format
-- Delta tables in Databricks Silver schema.
-- Markdown physical model document in GitHub output folder.
+### 3.1 Source Systems
+| Source System | Bronze Table | Silver Target Table | Business Purpose |
+|---|---|---|---|
+| `LEGACY_SE`, `LEGACY_MW`, `SUNBELT_CORE` | `bronze.bz_rental_contracts` | `silver.si_rental_contracts` | Standardized rental contract information |
+| Branch / billing platforms | `bronze.bz_invoices` | `silver.si_invoices` | Standardized invoice and billing records |
+| `LOCKBOX_FEED` | `bronze.bz_cash_receipts` | `silver.si_cash_receipts` | Standardized payment and receipt data |
+| CRM / ERP customer master | `bronze.bz_customer_master` | `silver.si_customer_master` | Conformed customer profile and credit reference |
+| `HR_FEED`, `HR_FEED_OLD` | `bronze.bz_branch_employee` | `silver.si_branch_employee` | Standardized employee, sales rep, and collector assignment data |
 
-## 5. Silver Layer DDL Scripts
+### 3.2 Intermediate Transformations
+1. Cast string dates from Bronze into `DATE` or `TIMESTAMP` where business meaning is stable.
+2. Standardize monetary values to `DECIMAL(18,2)` for downstream calculations.
+3. Retain all Bronze columns while adding Silver surrogate id fields.
+4. Preserve metadata and lineage columns: `load_date`, `update_date`, `source_system`.
+5. Retain Bronze ingestion lineage columns `file_path` and `file_modification_time`.
+6. Add validation-ready status and match columns where required by conceptual and constraint definitions.
+7. Support customer deduplication and conformance in Silver processing logic.
+8. Redirect invalid or nonconforming records into a shared Silver/Gold exception table.
+
+### 3.3 Expected Joins in Silver Processing
+| Left Table | Join Key | Right Table | Purpose |
+|---|---|---|---|
+| `silver.si_rental_contracts` | `customer_id` | `silver.si_customer_master` | Customer conformance for contract reporting |
+| `silver.si_rental_contracts` | `sales_rep_id = employee_id` | `silver.si_branch_employee` | Sales rep and branch reporting alignment |
+| `silver.si_invoices` | `contract_id` | `silver.si_rental_contracts` | Billing to contract standardization |
+| `silver.si_invoices` | `customer_id` | `silver.si_customer_master` | Customer-level AR alignment |
+| `silver.si_cash_receipts` | `invoice_id` | `silver.si_invoices` | Payment application and matching |
+| `silver.si_cash_receipts` | `customer_id` | `silver.si_customer_master` | Customer receipt analysis |
+| `silver.si_branch_employee` | `branch_code` | `silver.si_rental_contracts` | Branch-level organizational standardization |
+
+### 3.4 Validation Filters
+| Validation Area | Rule |
+|---|---|
+| Completeness | Mandatory business fields such as branch, customer, invoice amount, due date, payment amount, credit limit must not be null when required |
+| Accuracy | `invoice_amount`, `payment_amount`, and `credit_limit` must be non-negative where applicable; credit memo logic handled by `invoice_type` |
+| Format | Aging bucket values must align to valid bucket set when derived downstream |
+| Consistency | Branch and region values must align to enterprise rollup standards |
+| Referential | Applied receipt records should reference valid invoice records; invoice records should reference valid contracts or customers where expected |
+
+### 3.5 Output Format
+- Storage format: Delta Lake
+- SQL dialect: Databricks Spark SQL compatible
+- Documentation format: Markdown
+- Output location: `DI_Databricks_Silver_Model_Physical`
+
+## 4. Silver Layer Physical Design Principles
+1. All Silver tables are created with `CREATE TABLE IF NOT EXISTS`.
+2. All Bronze columns are included in the Silver physical tables.
+3. Additional surrogate id fields are added even when the logical model omitted them.
+4. No primary keys, foreign keys, unique constraints, or check constraints are included.
+5. Databricks-compatible types only are used.
+6. Delta Lake is the mandatory storage format.
+7. Metadata fields required on each business table: `load_date`, `update_date`, `source_system`.
+8. Bronze lineage fields are retained to support reconciliation.
+9. Error and audit tables are included for Silver and Gold operational coverage.
+10. Partitioning is applied only where useful for time-based pruning and operational performance.
+11. Indexes are documented as optimization guidance using Databricks techniques such as `OPTIMIZE`, `ZORDER`, liquid clustering guidance, and partitioning rather than traditional RDBMS indexes.
+
+## 5. Silver Layer Physical DDL Scripts
 
 ### 5.1 Rental Contracts
 ```sql
@@ -89,21 +95,22 @@ CREATE TABLE IF NOT EXISTS silver.si_rental_contracts (
   contract_end_date DATE,
   contract_status STRING,
   daily_rate DECIMAL(18,2),
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
   source_system STRING,
   file_path STRING,
-  file_modification_time TIMESTAMP
+  file_modification_time TIMESTAMP,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (contract_status);
+PARTITIONED BY (load_date);
 ```
 
-**Partition Strategy:** Partition by `contract_status` to support common lifecycle-oriented processing and manageable cardinality.
-
-**Indexing / Optimization Guidance:**
-- Use `OPTIMIZE silver.si_rental_contracts ZORDER BY (customer_id, branch_code, contract_id)`.
-- Avoid traditional RDBMS indexes because Spark SQL relies on file layout and data skipping.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_rental_contracts ZORDER BY (contract_id, customer_id, branch_code, sales_rep_id);
+```
 
 ### 5.2 Invoices
 ```sql
@@ -118,20 +125,22 @@ CREATE TABLE IF NOT EXISTS silver.si_invoices (
   tax_amount DECIMAL(18,2),
   invoice_type STRING,
   currency STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
   source_system STRING,
   file_path STRING,
-  file_modification_time TIMESTAMP
+  file_modification_time TIMESTAMP,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (invoice_date);
+PARTITIONED BY (load_date);
 ```
 
-**Partition Strategy:** Partition by `invoice_date` for billing period pruning and AR processing efficiency.
-
-**Indexing / Optimization Guidance:**
-- Use `OPTIMIZE silver.si_invoices ZORDER BY (customer_id, contract_id, invoice_id, due_date)`.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_invoices ZORDER BY (invoice_id, contract_id, customer_id, due_date);
+```
 
 ### 5.3 Cash Receipts
 ```sql
@@ -143,20 +152,22 @@ CREATE TABLE IF NOT EXISTS silver.si_cash_receipts (
   receipt_date DATE,
   payment_amount DECIMAL(18,2),
   payment_method STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
   source_system STRING,
   file_path STRING,
-  file_modification_time TIMESTAMP
+  file_modification_time TIMESTAMP,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (receipt_date);
+PARTITIONED BY (load_date);
 ```
 
-**Partition Strategy:** Partition by `receipt_date` for payment-period analytics and cash application processing.
-
-**Indexing / Optimization Guidance:**
-- Use `OPTIMIZE silver.si_cash_receipts ZORDER BY (customer_id, invoice_id, receipt_id)`.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_cash_receipts ZORDER BY (receipt_id, invoice_id, customer_id, receipt_date);
+```
 
 ### 5.4 Customer Master
 ```sql
@@ -168,20 +179,22 @@ CREATE TABLE IF NOT EXISTS silver.si_customer_master (
   credit_limit DECIMAL(18,2),
   customer_since DATE,
   customer_status STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
   source_system STRING,
   file_path STRING,
-  file_modification_time TIMESTAMP
+  file_modification_time TIMESTAMP,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (customer_status);
+PARTITIONED BY (load_date);
 ```
 
-**Partition Strategy:** Partition by `customer_status` to support risk and suspension-based access patterns with low cardinality.
-
-**Indexing / Optimization Guidance:**
-- Use `OPTIMIZE silver.si_customer_master ZORDER BY (customer_id, customer_name)`.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_customer_master ZORDER BY (customer_id, customer_name, customer_status);
+```
 
 ### 5.5 Branch Employee
 ```sql
@@ -194,175 +207,215 @@ CREATE TABLE IF NOT EXISTS silver.si_branch_employee (
   region STRING,
   collector_id STRING,
   effective_date DATE,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
   source_system STRING,
   file_path STRING,
-  file_modification_time TIMESTAMP
+  file_modification_time TIMESTAMP,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (region);
+PARTITIONED BY (load_date);
 ```
 
-**Partition Strategy:** Partition by `region` to support regional rollups and branch assignment analysis.
-
-**Indexing / Optimization Guidance:**
-- Use `OPTIMIZE silver.si_branch_employee ZORDER BY (branch_code, employee_id, collector_id)`.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_branch_employee ZORDER BY (employee_id, branch_code, region, collector_id);
+```
 
 ## 6. Error Data Table DDL Script
+The exception table is shared for Silver and Gold validation issues as requested.
 
 ```sql
-CREATE TABLE IF NOT EXISTS silver.si_data_quality_errors (
-  error_sk BIGINT,
-  source_table STRING,
-  source_record_id STRING,
-  source_file_path STRING,
-  validation_rule_name STRING,
-  validation_category STRING,
-  error_description STRING,
-  error_record_payload STRING,
-  error_severity STRING,
+CREATE TABLE IF NOT EXISTS silver.si_error_data (
+  error_record_sk BIGINT,
   layer_name STRING,
+  pipeline_name STRING,
+  source_table STRING,
+  target_table STRING,
+  business_key STRING,
+  table_name STRING,
+  column_name STRING,
+  validation_rule STRING,
+  validation_status STRING,
+  rejected_value STRING,
+  error_description STRING,
+  error_category STRING,
+  severity STRING,
+  source_system STRING,
+  file_path STRING,
   detected_timestamp TIMESTAMP,
-  processing_status STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (layer_name, processing_status);
+PARTITIONED BY (layer_name, load_date);
 ```
 
-**Purpose:** Stores details of validation errors encountered during Silver and Gold processing, as required.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_error_data ZORDER BY (source_table, target_table, business_key, validation_status, error_category);
+```
 
 ## 7. Audit Table DDL Script
+The audit table stores Silver and Gold pipeline execution history as requested.
 
 ```sql
-CREATE TABLE IF NOT EXISTS silver.si_process_audit (
+CREATE TABLE IF NOT EXISTS silver.si_pipeline_audit (
   audit_sk BIGINT,
+  pipeline_run_id STRING,
+  layer_name STRING,
   pipeline_name STRING,
   source_table STRING,
   target_table STRING,
   process_start_timestamp TIMESTAMP,
   process_end_timestamp TIMESTAMP,
   processing_status STRING,
-  records_read_count DECIMAL(18,0),
-  records_written_count DECIMAL(18,0),
-  records_rejected_count DECIMAL(18,0),
-  processing_duration_seconds DECIMAL(18,2),
+  records_read BIGINT,
+  records_written BIGINT,
+  records_rejected BIGINT,
+  processing_time_seconds DECIMAL(18,2),
+  trigger_type STRING,
+  processed_by STRING,
   error_message STRING,
-  executed_by STRING,
-  audit_remarks STRING,
-  load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
+  source_system STRING,
+  load_timestamp TIMESTAMP,
+  update_timestamp TIMESTAMP,
+  load_date DATE,
+  update_date DATE
 )
 USING DELTA
-PARTITIONED BY (processing_status);
+PARTITIONED BY (layer_name, load_date);
 ```
 
-**Purpose:** Tracks pipeline execution details, start and end times, record metrics, status, and errors for auditability.
+**Optimization Guidance**
+```sql
+OPTIMIZE silver.si_pipeline_audit ZORDER BY (pipeline_run_id, pipeline_name, source_table, target_table, processing_status);
+```
 
 ## 8. Update DDL Script
+This section provides additive update DDL patterns for future model changes without dropping tables.
 
 ```sql
 ALTER TABLE silver.si_rental_contracts ADD COLUMNS (
-  contract_source_status STRING
+  contract_start_year INT,
+  contract_end_year INT
 );
 
 ALTER TABLE silver.si_invoices ADD COLUMNS (
-  aging_bucket STRING,
-  days_past_due INT
+  invoice_year INT,
+  invoice_month INT,
+  due_year INT,
+  due_month INT
 );
 
 ALTER TABLE silver.si_cash_receipts ADD COLUMNS (
-  match_status STRING,
-  unapplied_payment_amount DECIMAL(18,2)
+  receipt_year INT,
+  receipt_month INT
 );
 
 ALTER TABLE silver.si_customer_master ADD COLUMNS (
-  over_limit_indicator STRING
+  customer_tenure_days BIGINT
 );
 
-ALTER TABLE silver.si_process_audit ADD COLUMNS (
-  run_id STRING
+ALTER TABLE silver.si_error_data ADD COLUMNS (
+  remediation_status STRING,
+  remediated_timestamp TIMESTAMP
+);
+
+ALTER TABLE silver.si_pipeline_audit ADD COLUMNS (
+  workflow_name STRING,
+  notebook_path STRING
 );
 ```
 
-**Update Usage Note:** These additive DDL statements support future Silver model evolution without overwriting prior versions.
+## 9. Partitioning Strategy
 
-## 9. Table-by-Table Physical Model Summary
+| Table | Recommended Partition | Reason |
+|---|---|---|
+| `silver.si_rental_contracts` | `load_date` | Supports incremental loads and operational pruning |
+| `silver.si_invoices` | `load_date` | High-volume billing ingestion and incremental processing |
+| `silver.si_cash_receipts` | `load_date` | Payment feed loads are append-heavy and date-driven |
+| `silver.si_customer_master` | `load_date` | Supports periodic customer master refresh and reconciliation |
+| `silver.si_branch_employee` | `load_date` | HR and assignment refresh handling |
+| `silver.si_error_data` | `layer_name`, `load_date` | Efficient support for triage by layer and processing date |
+| `silver.si_pipeline_audit` | `layer_name`, `load_date` | Operational monitoring by layer and run date |
 
-| Table Name | Grain | Added ID Field | Bronze Column Coverage | Storage Format | Recommended Z-Order |
-|---|---|---|---|---|---|
-| `silver.si_rental_contracts` | One row per conformed contract record | `rental_contract_sk` | Includes all Bronze rental contract columns | Delta | `customer_id, branch_code, contract_id` |
-| `silver.si_invoices` | One row per conformed invoice record | `invoice_sk` | Includes all Bronze invoice columns | Delta | `customer_id, contract_id, invoice_id, due_date` |
-| `silver.si_cash_receipts` | One row per conformed receipt record | `cash_receipt_sk` | Includes all Bronze cash receipt columns | Delta | `customer_id, invoice_id, receipt_id` |
-| `silver.si_customer_master` | One row per conformed customer record | `customer_sk` | Includes all Bronze customer columns | Delta | `customer_id, customer_name` |
-| `silver.si_branch_employee` | One row per conformed employee assignment | `branch_employee_sk` | Includes all Bronze employee columns | Delta | `branch_code, employee_id, collector_id` |
-| `silver.si_data_quality_errors` | One row per rejected or invalid record | `error_sk` | Operational support table | Delta | `source_table, source_record_id` |
-| `silver.si_process_audit` | One row per process execution event | `audit_sk` | Operational audit support table | Delta | `pipeline_name, target_table` |
+## 10. Index and Performance Strategy
+Because Databricks Spark SQL does not use traditional B-tree indexes like OLTP platforms, the following supported optimization patterns should be used.
 
-## 10. Data Retention Policies
+| Table | Optimization Technique | Columns |
+|---|---|---|
+| `silver.si_rental_contracts` | Z-ORDER | `contract_id`, `customer_id`, `branch_code`, `sales_rep_id` |
+| `silver.si_invoices` | Z-ORDER | `invoice_id`, `contract_id`, `customer_id`, `due_date` |
+| `silver.si_cash_receipts` | Z-ORDER | `receipt_id`, `invoice_id`, `customer_id`, `receipt_date` |
+| `silver.si_customer_master` | Z-ORDER | `customer_id`, `customer_name`, `customer_status` |
+| `silver.si_branch_employee` | Z-ORDER | `employee_id`, `branch_code`, `region`, `collector_id` |
+| `silver.si_error_data` | Z-ORDER | `source_table`, `target_table`, `business_key`, `validation_status` |
+| `silver.si_pipeline_audit` | Z-ORDER | `pipeline_run_id`, `pipeline_name`, `processing_status` |
 
-### 10.1 Retention Periods for the Silver Layer
+## 11. Data Retention Policies
+
+### 11.1 Retention Periods for Silver Layer
 | Table Category | Retention Period | Rationale |
 |---|---|---|
-| Core Silver business tables | 7 years | Supports finance, AR, and reporting auditability requirements |
-| Data quality error table | 2 years | Supports remediation trend analysis and controlled reprocessing history |
-| Process audit table | 2 years | Supports operational observability, SLA review, and incident tracing |
-| Intermediate transient Silver views or temp outputs | 30 days | Supports restart and short-term validation only |
+| Core Silver business tables | 7 years | Supports finance, AR, cash reconciliation, and trend analysis |
+| Error data table | 2 years online, archive afterward | Supports operational remediation, audit review, and root cause analysis |
+| Pipeline audit table | 2 years online, archive afterward | Supports operational governance and job troubleshooting |
+| File-level lineage metadata | Same as parent table | Required for source reconciliation and auditability |
 
-### 10.2 Archiving Strategies
-- Archive aged Silver Delta data older than the policy threshold into lower-cost archival storage while preserving replay ability.
-- Run scheduled `VACUUM` operations only according to enterprise retention governance and Delta log requirements.
-- Preserve audit and error summaries before archival for operational reporting continuity.
-- Use date-based archival batches by `invoice_date`, `receipt_date`, `effective_date`, or metadata timestamps depending on table purpose.
+### 11.2 Archiving Strategies
+1. Vacuum and retention settings must align with enterprise governance and Delta Lake retention safeguards.
+2. Historical Silver records older than operational access thresholds should be archived to lower-cost Delta archive storage.
+3. Error and audit records older than 2 years should be moved to archive schema or cold storage while preserving retrieval capability.
+4. Archive tables should keep the same schema structure to simplify back-read and replay.
+5. Do not use aggressive `VACUUM` windows that violate audit or rollback requirements.
 
-## 11. Databricks Spark SQL Limitations Considered
-The following items from general data modeling practice are intentionally not implemented because they are not appropriate or required for Databricks Spark SQL Silver physical design:
-- No primary key constraints.
-- No foreign key constraints.
-- No unique constraints.
-- No check constraints enforced in the DDL.
-- No traditional row-store indexes.
+## 12. Conceptual Data Model Diagram in Tabular Form
 
-Instead, Delta optimization, partitioning, and Z-Ordering are used.
-
-## 12. Assumptions and Design Decisions
-1. Bronze physical DDL is treated as the authoritative base structure and every Bronze business column is preserved in the Silver physical tables.
-2. Surrogate id fields were added to all core Silver tables because the instructions require id fields in the physical model.
-3. Bronze `STRING` date columns were converted to `DATE` in Silver where business semantics indicate true date values.
-4. Metadata columns required by the prompt are standardized as `load_date`, `update_date`, and `source_system`.
-5. Existing Bronze lineage columns `file_path` and `file_modification_time` are retained for traceability.
-6. Error logging is centralized in `silver.si_data_quality_errors` for both Silver and Gold validation events.
-7. Audit logging is centralized in `silver.si_process_audit` for pipeline execution traceability.
-8. Partitioning choices are based on low-to-moderate cardinality operational filters and reporting-period access patterns.
-9. Spark-incompatible constraints were excluded even where conceptual or business rules imply referential relationships.
-
-## 13. Conceptual Data Model Diagram in Tabular Form
-
-| Source Table | Key Field | Target Table | Relationship Description |
+| Table A | Key Field | Table B | Relationship Description |
 |---|---|---|---|
-| `silver.si_customer_master` | `customer_id` | `silver.si_rental_contracts` | One customer connects to many rental contracts by `customer_id`. |
-| `silver.si_branch_employee` | `employee_id` = `sales_rep_id` | `silver.si_rental_contracts` | One employee as sales rep connects to many rental contracts by `sales_rep_id`. |
-| `silver.si_rental_contracts` | `contract_id` | `silver.si_invoices` | One contract connects to many invoices by `contract_id`. |
-| `silver.si_customer_master` | `customer_id` | `silver.si_invoices` | One customer connects to many invoices by `customer_id`. |
-| `silver.si_invoices` | `invoice_id` | `silver.si_cash_receipts` | One invoice connects to many cash receipts by `invoice_id`. |
-| `silver.si_customer_master` | `customer_id` | `silver.si_cash_receipts` | One customer connects to many cash receipts by `customer_id`. |
-| `silver.si_branch_employee` | `branch_code` | `silver.si_rental_contracts` | Branch assignment connects employee context to contracts by `branch_code`. |
-| `silver.si_branch_employee` | `region` | `silver.si_rental_contracts` | Regional alignment supports rollup from employee assignments to contract activity by `region`. |
-| `silver.si_process_audit` | `target_table` | All Silver tables | Audit records connect processing runs to each target Silver table by `target_table`. |
-| `silver.si_data_quality_errors` | `source_table` | All Silver/Gold tables | Error records connect validation failures to source tables by `source_table`. |
+| `silver.si_customer_master` | `customer_id` | `silver.si_rental_contracts` | One customer can relate to many rental contracts |
+| `silver.si_branch_employee` | `employee_id = sales_rep_id` | `silver.si_rental_contracts` | One sales representative can manage many rental contracts |
+| `silver.si_rental_contracts` | `contract_id` | `silver.si_invoices` | One rental contract can generate many invoices |
+| `silver.si_customer_master` | `customer_id` | `silver.si_invoices` | One customer can have many invoices |
+| `silver.si_invoices` | `invoice_id` | `silver.si_cash_receipts` | One invoice can relate to many payment applications or receipts |
+| `silver.si_customer_master` | `customer_id` | `silver.si_cash_receipts` | One customer can have many receipts |
+| `silver.si_branch_employee` | `branch_code` | `silver.si_rental_contracts` | Branch assignment supports branch rollup of contracts |
+| `silver.si_branch_employee` | `region` | `silver.si_rental_contracts` | Region assignment supports regional reporting rollups |
+| `silver.si_error_data` | `source_table / target_table` | `silver.si_pipeline_audit` | Error events can be traced to specific pipeline runs and targets |
 
-## 14. Implementation Notes
-- Use Auto Loader or batch ingestion from Bronze into Silver.
-- Apply standard casting using `to_date()` and controlled null handling.
-- Use `MERGE` for incremental upserts where change data patterns exist.
-- Use Delta `OPTIMIZE` and `VACUUM` based on enterprise standards.
-- Maintain version history of this Markdown artifact in GitHub.
+## 13. Assumptions and Design Decisions
+1. Bronze physical model is treated as the authoritative column source for Silver physical design.
+2. All Bronze business and lineage columns are preserved in Silver.
+3. Surrogate id fields were added as `*_sk BIGINT` because the instructions require id fields in the physical model.
+4. No PK, FK, unique, or check constraints are included because they are either unsupported or not appropriate for this Databricks Silver implementation requirement.
+5. Traditional indexes were not implemented because Databricks favors Delta optimization techniques instead.
+6. Date strings from Bronze are standardized to `DATE` where business semantics are stable; timestamps remain `TIMESTAMP`.
+7. Error and audit tables are designed to cover Silver and Gold operational needs without duplicating physical structures.
+8. Calculated KPI facts such as DSO, CEI, and AR aging bucket summaries are assumed to be downstream Gold outputs, while Silver remains conformed and validation-ready.
+9. `load_date` and `update_date` were added in addition to Bronze timestamps to satisfy explicit metadata requirements.
+10. Credit memo sign handling is managed in transformation logic via `invoice_type`; the physical model does not enforce numeric sign constraints.
 
-## 15. apiCost
+## 14. Databricks Spark SQL Limitations Considered and Excluded
+| Limitation / Consideration | Handling in Final Output |
+|---|---|
+| Traditional PK/FK enforcement is not reliable for medallion physical ingestion patterns | Excluded from DDL |
+| Traditional OLTP indexes are not used in Databricks Delta | Replaced with partitioning and `OPTIMIZE ... ZORDER BY` guidance |
+| Heavy constraint enforcement can reduce ingestion flexibility | Excluded from table definitions |
+| Generated surrogate keys may be populated by ETL logic rather than strict identity dependence | Modeled as `BIGINT` columns without unsupported enforcement assumptions |
+
+## 15. Implementation Notes
+1. Use Auto Loader or structured batch ingestion from Bronze to populate these Silver tables.
+2. Populate surrogate keys during ETL using deterministic or sequence-style assignment logic consistent with enterprise standards.
+3. Route invalid rows to `silver.si_error_data` before promoting conformed rows.
+4. Record each pipeline execution in `silver.si_pipeline_audit`.
+5. Run `OPTIMIZE` and optionally `VACUUM` based on enterprise retention standards.
+
+## 16. API Cost
 apiCost: 0.000000
 
 ---
