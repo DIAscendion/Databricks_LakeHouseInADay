@@ -1,7 +1,7 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*: Reviewer report evaluating the Databricks Gold logical and physical models and DDL compatibility for Microsoft Fabric and Spark.
+## *Description*: Review report evaluating the Databricks Gold physical data model and DDL for alignment, best practices, Spark compatibility, and Microsoft Fabric considerations.
 ## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
@@ -9,25 +9,30 @@ _____________________________________________
 # Databricks Gold Model Reviewer
 
 ## 1. Input Summary
-This reviewer evaluates the provided Gold logical model and Gold physical DDL artifact for the Rental Revenue-to-Cash analytical reporting domain. The review checks conceptual alignment, source-to-target compatibility, data modeling best practices, and DDL compatibility with Microsoft Fabric and Spark SQL, including observation of unsupported or risky implementation patterns.
+This Reviewer evaluates the Gold logical model and Gold physical DDL for the Rental Revenue-to-Cash analytical reporting domain. The review checks logical-to-physical alignment, source traceability, transformation coverage, table design quality, DDL compatibility with Spark and Microsoft Fabric expectations, and usage of unsupported implementation features.
 
 ## 2. Parsed Inputs
 
-| Input Type | File Path | Review Usage |
-|---|---|---|
-| Logical Model | `DI_Databricks_Gold_Model_Logical/Databricks_Gold_Model_Logical_1.md` | Used to validate required Gold entities, table classifications, business measures, and metadata expectations |
-| Physical Model / DDL | `DI_Databricks_Gold_Model_Physical/Databricks_Gold_Model_Physical_1.txt` | Used to validate table implementation, DDL syntax patterns, compatibility, and operational design |
+| Input Type | File Path | Status | Notes |
+|---|---|---|---|
+| Logical Model | `DI_Databricks_Gold_Model_Logical/Databricks_Gold_Model_Logical_1.md` | ✅ Reviewed | Used as conceptual/logical baseline |
+| Physical Model / DDL | `DI_Databricks_Gold_Model_Physical/Databricks_Gold_Model_Physical_1.txt` | ✅ Reviewed | Used for structural and compatibility review |
 
 ## 3. Identified Data Flow Components
 
 ### 3.1 Data Sources
 
-| Source Category | Identified Sources |
-|---|---|
-| Silver Sources referenced in physical design | `silver.si_rental_contracts`, `silver.si_invoices`, `silver.si_cash_receipts`, `silver.si_customer_master`, `silver.si_branch_employee`, `silver.si_data_quality_errors`, `silver.si_process_audit` |
-| Logical upstream reference | Silver conformed date, organization, customer, personnel, contract, invoice, cash receipt, exposure, and receivable snapshot datasets |
+| Source Type | Source Object | Identified In | Observation |
+|---|---|---|---|
+| Silver Source | `silver.si_rental_contracts` | Physical model | Contract and revenue context source |
+| Silver Source | `silver.si_invoices` | Physical model | Invoice, aging, and billing source |
+| Silver Source | `silver.si_cash_receipts` | Physical model | Cash application source |
+| Silver Source | `silver.si_customer_master` | Physical model | Customer and credit source |
+| Silver Source | `silver.si_branch_employee` | Physical model | Branch, sales rep, and collector source |
+| Silver Source | `silver.si_data_quality_errors` | Physical model | Upstream quality traceability source |
+| Silver Source | `silver.si_process_audit` | Physical model | Upstream audit lineage source |
 
-### 3.2 Target Gold Tables
+### 3.2 Target Tables
 
 | Category | Tables |
 |---|---|
@@ -35,164 +40,217 @@ This reviewer evaluates the provided Gold logical model and Gold physical DDL ar
 | Code Tables | `go_code_aging_bucket`, `go_code_period_type` |
 | Facts | `go_fct_rental_revenue`, `go_fct_ar_aging`, `go_fct_cash_application`, `go_fct_credit_risk` |
 | Aggregates | `go_agg_executive_health_score`, `go_agg_billing_performance` |
-| Audit / Error | `go_process_audit`, `go_error_data` |
+| Operational Tables | `go_process_audit`, `go_error_data` |
 
-### 3.3 Intermediate Transformations, Joins, Aggregations, Filters, and Output Format
+### 3.3 Intermediate Transformations
 
-| Component | Review Observation |
-|---|---|
-| Intermediate transformations | Aging bucket derivation, days past due derivation, rental revenue metrics, AR snapshot metrics, cash application performance metrics, credit exposure and utilization metrics, and executive/billing aggregates are clearly identified |
-| Joins | Expected joins across contracts, invoices, receipts, customer master, and branch employee sources are documented and generally align with Gold outputs |
-| Aggregations | Daily, period, snapshot, customer, branch, region, sales rep, collector, equipment class, and executive rollups are explicitly covered |
-| Filters / rules | Invalid mandatory records routing, aging bucket validation, divide-by-zero prevention, overpayment checks, and billing reconciliation rules are included |
-| Output format | Delta tables for Gold schema and markdown/text artifact in GitHub are clearly specified |
-
-# 1. Alignment with Conceptual Data Model
-
-## 1.1 ✅ Green Tick: Covered Requirements
-
-| Evaluation Area | Status | Reviewer Comments |
+| Transformation Type | Identified | Notes |
 |---|---|---|
-| Gold layer table inventory | ✅ | Logical model contains dimensions, facts, code tables, aggregates, audit, and error tables expected for the reporting domain |
-| Required analytical domains | ✅ | Rental Revenue, AR Aging, Cash Application, and Credit Risk are all represented in the Gold design |
-| Classification of objects | ✅ | Tables are explicitly categorized as Dimension, Fact, Code Table, Aggregated, Audit Data, and Error Data |
-| Metadata columns | ✅ | `load_date`, `update_date`, and `source_system` are included in logical and physical Gold tables broadly across the model |
-| Reporting-focused design | ✅ | Model supports executive scorecards, billing performance, collections, AR aging, and customer credit analytics |
-| Relationship mapping | ✅ | Logical document includes fact-to-dimension and conceptual relationship tables |
-| Audit and error tracking | ✅ | Dedicated audit and error structures are included in both logical and physical artifacts |
+| Conformed dimensions build | ✅ | Date, region, branch, customer, personnel, contract, invoice, equipment class |
+| Aging bucket derivation | ✅ | Derived from invoice/payment timing |
+| Revenue metric derivation | ✅ | Rental revenue, gross billings, net billings, credit memo rate |
+| AR snapshot derivation | ✅ | Outstanding AR, DSO, 90+ balances |
+| Cash application derivation | ✅ | CEI, on-time %, unapplied cash |
+| Credit exposure derivation | ✅ | Utilization, over-limit amount, exposure indicators |
+| Executive aggregate derivation | ✅ | Multi-domain rollups |
+| Billing performance aggregate derivation | ✅ | Reporting rollups by business dimensions |
+| Error routing | ✅ | Invalid records to `go_error_data` |
+| Audit capture | ✅ | Pipeline events to `go_process_audit` |
 
-## 1.2 ❌ Red Tick: Missing Requirements
+### 3.4 Joins
 
-| Evaluation Area | Status | Reviewer Comments |
-|---|---|---|
-| Strict preservation of logical no-ID rule | ❌ | Logical model explicitly says primary key, foreign key, unique identifier, and explicit ID fields are not included, but physical model adds many ID fields and surrogate key style columns. This may be acceptable physically, but it deviates from the logical instruction and should be formally documented as an approved exception |
-| Complete consistency between logical and physical column names | ❌ | Several logical names differ in physical model, such as `equipment_class_name` vs `equipment_class`, and additional attributes appear in physical DDL that are not explicitly mapped back to logical definitions |
-| Explicit conceptual-to-physical requirement traceability | ❌ | Physical artifact does not provide a requirement-by-requirement mapping table showing each logical element and where it is implemented |
-| Knowledge base unsupported feature validation evidence | ❌ | Prompt mentions an attached knowledge base file for unsupported Microsoft Fabric features, but no such knowledge base file was provided in the reviewed inputs, so a full evidence-based validation against that file cannot be completed |
-
-# 2. Source Data Structure Compatibility
-
-## 2.1 ✅ Green Tick: Aligned Elements
-
-| Evaluation Area | Status | Reviewer Comments |
-|---|---|---|
-| Source coverage | ✅ | Physical model identifies key Silver sources needed to build customer, contract, invoice, receipt, branch, audit, and error outputs |
-| Business transformations | ✅ | Transformations for aging, reconciliation, utilization, DSO, CEI, and billing metrics are described and aligned with business reporting requirements |
-| Join representation | ✅ | Expected joins between contracts, customers, invoices, cash receipts, and employee/branch structures are documented clearly |
-| Aggregation representation | ✅ | Required rollups for executive scorecard and billing performance are explicitly modeled |
-| Data quality rules | ✅ | Invalid records routing, approved bucket enforcement, and metric safeguards are described |
-
-## 2.2 ❌ Red Tick: Misaligned or Missing Elements
-
-| Evaluation Area | Status | Reviewer Comments |
-|---|---|---|
-| Source physical input availability | ❌ | Physical document references `DI_Databricks_Silver_Model_Physical/Databricks_Silver_Model_Physical_1.md`, but that file was not part of the provided review input set, so direct source-to-target structural validation is partial rather than complete |
-| Full source column traceability | ❌ | Not every Gold physical column is traced back to an explicit Silver source column or derivation rule |
-| Customer and employee lineage completeness | ❌ | Some fields such as `network_level`, `organization_hierarchy_name`, and executive score components are not fully traced to exact upstream source fields |
-| Business rule implementation detail | ❌ | Metrics like `overall_revenue_to_cash_health_score`, `collection_effectiveness_index`, `best_possible_dso`, and `trend_value` are identified, but formulas are not formally specified in executable or pseudo-code form |
-
-# 3. Best Practices Assessment
-
-## 3.1 ✅ Green Tick: Adherence to Best Practices
-
-| Evaluation Area | Status | Reviewer Comments |
-|---|---|---|
-| Clear naming convention | ✅ | Gold objects consistently use `go_` prefix and table type patterns such as `dim`, `fct`, `agg`, `code` |
-| Dimensional modeling approach | ✅ | Star-oriented analytical modeling is appropriate for Gold reporting layer consumption |
-| Auditability | ✅ | Audit and error tables are included, which is good practice for observability and supportability |
-| Sensitive data awareness | ✅ | Logical model includes PII/business sensitivity classification guidance |
-| Delta optimization guidance | ✅ | Physical design recommends partitioning, `OPTIMIZE`, and Z-Ordering instead of traditional indexes |
-| Data quality considerations | ✅ | Reconciliation and validation rules are documented |
-
-## 3.2 ❌ Red Tick: Deviations from Best Practices
-
-| Evaluation Area | Status | Reviewer Comments |
-|---|---|---|
-| Datatype convention for Spark | ❌ | DDL uses `VARCHAR` extensively; while Spark may tolerate character aliases in some contexts, `STRING` is the clearer and more standard Spark/Fabric-friendly datatype choice |
-| Partitioning strategy | ❌ | Several dimensions are partitioned by low-cardinality or relatively static descriptive attributes such as `region_name`, `customer_status`, `branch_status`, and `process_status`; this may create unnecessary small partitions and is often not optimal for lakehouse workloads |
-| Constraint and key semantics | ❌ | Surrogate key style columns are added but not governed for generation or uniqueness, which can create ambiguity in ETL implementation |
-| SCD implementation completeness | ❌ | Logical model assigns Type 2 to some dimensions, but physical DDL does not include effective dating, current flag, expiry date, or versioning columns needed to properly implement SCD Type 2 |
-| Normalization vs analytical optimization clarity | ❌ | Some dimensions and facts duplicate descriptive columns heavily; this may be acceptable in Gold, but grain and denormalization rationale should be more explicitly justified |
-| Indexing guidance precision | ❌ | Traditional indexing is correctly avoided, but the document still frames Z-Ordering as an index alternative without discussing workload-specific tradeoffs |
-| Update script governance | ❌ | `ALTER TABLE ... ADD COLUMNS` statements are presented without versioning, dependency, deployment sequencing, or backfill guidance |
-| Metadata consistency | ❌ | `source_system` is omitted from `go_process_audit` update addition block and not all change management conventions are consistently described across every object |
-
-# 4. DDL Script Compatibility
-
-## 4.1 Microsoft Fabric Compatibility
-
-| Check | Status | Reviewer Comments |
-|---|---|---|
-| Basic CREATE TABLE structure | ✅ | DDL is structured cleanly with separate table definitions and common metadata fields |
-| Lakehouse-style object design | ✅ | Fact, dimension, aggregate, audit, and error tables fit Fabric lakehouse analytics patterns |
-| Avoidance of PK/FK enforcement | ✅ | The script avoids primary and foreign key constraints that may be unsupported or operationally undesirable in distributed platforms |
-| Unsupported traditional indexes avoided | ✅ | No classic RDBMS index statements are present |
-| Potential compatibility risk: `USING DELTA` | ❌ | This is Databricks-specific syntax and not a direct Microsoft Fabric SQL endpoint pattern. If target execution is Fabric Warehouse/Lakehouse SQL, this requires confirmation or adaptation |
-| Potential compatibility risk: `OPTIMIZE ... ZORDER BY` | ❌ | Z-Ordering is Databricks-specific optimization syntax and is not portable to Microsoft Fabric in the same form |
-| Potential compatibility risk: `VARCHAR` usage | ❌ | Fabric support varies by engine context; for Spark-oriented execution, `STRING` is safer and more idiomatic |
-| Potential compatibility risk: `PARTITIONED BY` syntax assumption | ❌ | Partition syntax support depends on whether execution is in Spark notebooks/lakehouse or SQL warehouse context; compatibility is not universally guaranteed without engine-specific confirmation |
-
-## 4.2 Spark Compatibility
-
-| Check | Status | Reviewer Comments |
-|---|---|---|
-| Spark-style table creation approach | ✅ | `CREATE TABLE IF NOT EXISTS` and partitioning patterns are generally Spark-oriented |
-| Decimal, date, timestamp, int, bigint usage | ✅ | Core numeric and temporal datatypes are generally Spark-compatible |
-| Delta Lake storage model | ✅ | `USING DELTA` aligns with Databricks Spark SQL |
-| ALTER TABLE ADD COLUMNS usage | ✅ | The update DDL is broadly compatible with Spark SQL patterns |
-| Use of `VARCHAR` rather than `STRING` | ❌ | Although often accepted or mapped, `STRING` is the preferred and clearer Spark datatype |
-| Surrogate keys without generation strategy | ❌ | Spark compatibility is not the issue here, but implementation completeness is weak because key population logic is unspecified |
-
-## 4.3 Used any unsupported features in Microsoft Fabric
-
-| Feature / Pattern | Status | Reviewer Comments |
-|---|---|---|
-| Primary keys / foreign keys / unique constraints | ✅ | Not used |
-| Traditional indexes | ✅ | Not used |
-| Databricks-specific Delta syntax in Fabric context | ❌ | `USING DELTA` is a portability concern for Microsoft Fabric if executed outside Spark-compatible contexts |
-| Databricks-specific optimization commands | ❌ | `OPTIMIZE` and `ZORDER BY` should be treated as unsupported or non-portable for Fabric unless proven supported in the target execution engine |
-| Knowledge-base-specific unsupported feature validation | ❌ | Cannot be fully completed because the referenced Microsoft Fabric unsupported-features knowledge base file was not included in the provided inputs |
-
-# 5. Identified Issues and Recommendations
-
-## 5.1 Key Issues
-
-| Issue ID | Severity | Issue Description | Impact |
+| Left Table | Join Field | Right Table | Join Purpose |
 |---|---|---|---|
-| I-01 | High | Physical model uses Databricks-specific syntax while review also requires Microsoft Fabric compatibility | DDL may not run unchanged in Fabric |
-| I-02 | High | SCD Type 2 dimensions lack physical history columns such as effective_start_date, effective_end_date, is_current, and record_version | Historical tracking cannot be reliably implemented |
-| I-03 | Medium | Extensive use of `VARCHAR` rather than `STRING` for Spark-oriented DDL | Reduces portability and clarity |
-| I-04 | Medium | Partitioning choices on low-cardinality/status columns may degrade performance or create inefficient layout | Operational inefficiency and maintenance overhead |
-| I-05 | Medium | Surrogate key fields are added without generation strategy, uniqueness rule, or ETL population logic | Ambiguous implementation and data quality risk |
-| I-06 | Medium | Not all Gold columns are traceable to explicit source columns or formula definitions | Weak lineage and reviewability |
-| I-07 | Medium | Referenced Microsoft Fabric unsupported-features knowledge base file is missing from provided inputs | Full compliance validation cannot be evidenced |
-| I-08 | Low | Update DDL lacks deployment sequencing and rollback/backfill guidance | Change management risk |
+| `silver.si_rental_contracts` | `customer_id` | `silver.si_customer_master.customer_id` | Customer context |
+| `silver.si_rental_contracts` | `sales_rep_id` | `silver.si_branch_employee.employee_id` | Sales rep mapping |
+| `silver.si_rental_contracts` | `branch_code` | `silver.si_branch_employee.branch_code` | Branch/region mapping |
+| `silver.si_invoices` | `contract_id` | `silver.si_rental_contracts.contract_id` | Contract billing linkage |
+| `silver.si_invoices` | `customer_id` | `silver.si_customer_master.customer_id` | Customer billing linkage |
+| `silver.si_cash_receipts` | `invoice_id` | `silver.si_invoices.invoice_id` | Payment application linkage |
+| `silver.si_cash_receipts` | `customer_id` | `silver.si_customer_master.customer_id` | Customer payment linkage |
+| `gold.go_fct_rental_revenue` | `reporting_date` | `gold.go_dim_date.reporting_date` | Time conformance |
+| `gold.go_fct_ar_aging` | `aging_bucket` | `gold.go_code_aging_bucket.aging_bucket_name` | Bucket conformance |
 
-## 5.2 Recommendations
+### 3.5 Aggregations
 
-| Recommendation ID | Priority | Recommendation |
+| Aggregation Area | Identified | Notes |
 |---|---|---|
-| R-01 | High | Produce two execution-specific DDL variants if needed: one for Databricks Spark/Delta and one for Microsoft Fabric, rather than claiming one script is fully portable across both |
-| R-02 | High | Replace `VARCHAR` with `STRING` for Spark-first DDL unless a confirmed target engine explicitly requires `VARCHAR` |
-| R-03 | High | Add proper SCD Type 2 columns for `go_dim_branch`, `go_dim_customer`, and `go_dim_contract`, including effective dates, current flag, and version control logic |
-| R-04 | High | Create a source-to-target mapping matrix that traces every Gold physical column to source fields or derivation formulas |
-| R-05 | Medium | Reassess partitioning strategy and partition mainly on high-value temporal fields like `reporting_date` or `snapshot_date`; avoid partitioning small dimensions unless justified by scale |
-| R-06 | Medium | Define surrogate key generation approach, such as deterministic hashing or ETL-generated sequence logic, and document uniqueness handling |
-| R-07 | Medium | Provide explicit formulas or pseudo-code for DSO, CEI, trend, health score, over-limit exposure, and other derived business metrics |
-| R-08 | Medium | Add implementation notes for Fabric-specific unsupported syntax replacements, especially for `USING DELTA`, `OPTIMIZE`, and `ZORDER BY` |
-| R-09 | Medium | Include a dedicated compliance appendix once the Microsoft Fabric unsupported-features knowledge base file is available |
-| R-10 | Low | Add deployment/version governance for `ALTER TABLE` statements, including prerequisite checks, backward compatibility notes, and data backfill steps |
+| Rental revenue summarization | ✅ | Daily and period billing metrics |
+| AR aging summarization | ✅ | Snapshot bucket balances and DSO |
+| Cash collection summarization | ✅ | Applied/unapplied collection performance |
+| Credit risk summarization | ✅ | Exposure and utilization metrics |
+| Executive scorecard rollups | ✅ | Network/region/branch/person-level rollup |
+| Billing performance rollups | ✅ | Region/branch/sales/equipment rollup |
 
-## 6. Reviewer Verdict Summary
+### 3.6 Filters and Data Quality Rules
 
-| Category | Overall Status | Summary |
+| Rule | Identified |
+|---|---|
+| Approved aging bucket values enforced | ✅ |
+| Prevent divide-by-zero | ✅ |
+| Payment > invoice amount flagged | ✅ |
+| Net billings reconciliation check | ✅ |
+| Negative financial value quality checks | ✅ |
+| Invalid records routed to error table | ✅ |
+
+### 3.7 Output Formats
+
+| Output | Format |
+|---|---|
+| Gold analytical tables | Delta tables |
+| Reviewer artifact | Markdown document |
+
+# 4. Comprehensive Evaluation Report
+
+## 4.1 Alignment with Conceptual Data Model
+
+### 4.1.1 ✅ Green Tick: Covered Requirements
+
+| Requirement | Status | Reviewer Comments |
 |---|---|---|
-| Conceptual alignment | Partially Pass | Core business scope is well covered, but not all logical-to-physical traceability and consistency requirements are fully demonstrated |
-| Source compatibility | Partially Pass | Major source areas and transformations are represented, but detailed source lineage is incomplete |
-| Best practices | Partially Pass | Strong analytical structure and operational controls exist, but datatype choices, SCD implementation, and partitioning strategy need improvement |
-| DDL compatibility | Partially Pass | Good for Databricks-oriented Spark usage, but not fully portable to Microsoft Fabric without changes |
+| Gold dimensions defined | ✅ | Physical model includes all major logical dimensions: date, region, branch, customer, sales rep, collector, equipment class, contract, invoice |
+| Gold fact tables defined | ✅ | Rental revenue, AR aging, cash application, and credit risk facts are present |
+| Gold aggregate tables defined | ✅ | Executive health score and billing performance aggregates are present |
+| Code tables defined | ✅ | Aging bucket and period type code tables are present |
+| Audit and error structures included | ✅ | `go_process_audit` and `go_error_data` are implemented |
+| Metadata columns included | ✅ | `load_date`, `update_date`, and `source_system` appear broadly across model objects |
+| Business metrics represented | ✅ | Revenue, DSO, CEI, credit utilization, 90+ exposure, and other analytical metrics are captured |
+| Logical source-to-gold analytical intent preserved | ✅ | Physical model maintains the dimensional/reporting orientation of the logical model |
 
-## 7. apiCost
+### 4.1.2 ❌ Red Tick: Missing Requirements
+
+| Requirement Gap | Status | Reviewer Comments |
+|---|---|---|
+| Exact logical prohibition on ID fields preserved | ❌ | Logical model explicitly states IDs are excluded, but physical model adds many ID fields and surrogate-style keys |
+| Strict logical attribute parity | ❌ | Physical model introduces extra columns not defined in logical model such as `branch_code`, `customer_id`, `invoice_id`, `invoice_amount`, `currency`, `layer_name`, `run_id`, `source_record_id` |
+| SCD implementation detail | ❌ | Logical model identifies SCD types, but physical DDL does not include effective dating, current flags, or row versioning columns to operationalize Type 2 dimensions |
+| Gold conceptual relationship consistency | ❌ | Some logical relationships use business names while physical model shifts to IDs/codes; this is reasonable physically but not documented as a formal reconciliation section |
+
+## 4.2 Source Data Structure Compatibility
+
+### 4.2.1 ✅ Green Tick: Aligned Elements
+
+| Area | Status | Reviewer Comments |
+|---|---|---|
+| Source systems identified | ✅ | Silver source tables are clearly listed |
+| Source-to-target joins documented | ✅ | Core joins for contracts, invoices, receipts, customers, and employee mappings are documented |
+| Transformations identified | ✅ | Metrics, conformed dimensions, snapshots, and aggregates are described |
+| Source business content accounted for | ✅ | Customer, invoice, contract, receipt, employee, audit, and error inputs are all reflected |
+| Business rules reflected in transformations | ✅ | Aging bucket derivation, reconciliation checks, and denominator validations are specified |
+
+### 4.2.2 ❌ Red Tick: Misaligned or Missing Elements
+
+| Misalignment | Status | Reviewer Comments |
+|---|---|---|
+| Referenced Silver physical input file not actually provided in current task input | ❌ | Physical document references `DI_Databricks_Silver_Model_Physical/Databricks_Silver_Model_Physical_1.md`, but it was not part of this review package |
+| Full column-level traceability from source to each Gold target | ❌ | Reviewable mapping exists conceptually, but no end-to-end column mapping matrix is supplied |
+| Intermediate transformation logic in executable detail | ❌ | Transformations are described narratively, but no SQL/PySpark logic or calculation formulas are included for verification |
+| Filter implementation evidence | ❌ | Rules are documented, but no sample ETL logic confirms enforcement |
+
+## 4.3 Best Practices Assessment
+
+### 4.3.1 ✅ Green Tick: Adherence to Best Practices
+
+| Best Practice | Status | Reviewer Comments |
+|---|---|---|
+| Layered medallion alignment | ✅ | Gold layer is clearly modeled for analytics and reporting |
+| Dimensional separation | ✅ | Dimensions, facts, code, aggregate, audit, and error tables are clearly separated |
+| Naming conventions are consistent | ✅ | `go_` prefix is used consistently across Gold assets |
+| Audit and error handling included | ✅ | Operational governance structures are included |
+| Standard metadata columns used | ✅ | `load_date`, `update_date`, and `source_system` are consistently included in most core tables |
+| Spark-oriented optimization guidance included | ✅ | Partitioning and `OPTIMIZE` / Z-Ordering recommendations are documented |
+| Constraints avoided for Spark practicality | ✅ | PK/FK/unique/check constraints are intentionally omitted |
+
+### 4.3.2 ❌ Red Tick: Deviations from Best Practices
+
+| Deviation | Status | Reviewer Comments |
+|---|---|---|
+| Over-partitioning risk | ❌ | Several dimensions are partitioned by low-value business attributes such as `region_name`, `branch_status`, and `customer_status`, which may not be optimal in Spark/Fabric warehouses |
+| Use of `VARCHAR` instead of Spark-native `STRING` | ❌ | While often tolerated in some engines, Spark and Fabric compatibility is stronger and clearer with `STRING` |
+| No explicit Type 2 support columns | ❌ | Dimensions marked Type 2 lack effective start/end date, current flag, or version tracking columns |
+| Traditional indexing strategy absent | ❌ | For Spark this is acceptable, but no Fabric-specific optimization alternatives are provided beyond Delta optimization |
+| Inconsistent count datatypes | ❌ | Some audit counts use `DECIMAL(18,0)` instead of `BIGINT`, despite logical model using `bigint` |
+| Extra update DDL not reconciled to reviewed logical scope | ❌ | Added columns like `source_record_id` and `run_id` may be useful but are not justified against conceptual requirements |
+| Potential denormalization without explicit rationale | ❌ | Many facts duplicate business attributes and IDs; acceptable for analytics, but not explicitly justified as star schema denormalization |
+
+## 4.4 DDL Script Compatibility
+
+### 4.4.1 Microsoft Fabric Compatibility
+
+| Compatibility Check | Status | Reviewer Comments |
+|---|---|---|
+| Basic `CREATE TABLE` structure | ✅ | DDL is structurally readable and warehouse-oriented |
+| Common datatypes are generally usable | ✅ | `DATE`, `TIMESTAMP`, numeric types are common analytical types |
+| Constraints avoided | ✅ | Avoidance of PK/FK/check/unique reduces compatibility risk |
+| Delta-specific syntax in Fabric context | ❌ | `USING DELTA`, `OPTIMIZE`, and `ZORDER BY` are Databricks-specific and are not portable as generic Microsoft Fabric SQL warehouse DDL |
+| `PARTITIONED BY` syntax portability | ❌ | This is Spark/Delta style and not universally valid in Fabric SQL endpoints |
+| `ALTER TABLE ... ADD COLUMNS` syntax portability | ❌ | May not be portable exactly as written across all Fabric SQL experiences |
+| `VARCHAR` as preferred type for Fabric + Spark dual-targeting | ❌ | Cross-platform choice should be reviewed; `STRING` is better for Spark, while Fabric SQL may prefer `VARCHAR`, creating mixed-engine ambiguity |
+
+**Reviewer Conclusion:** The DDL is optimized for Databricks Delta implementation, but it is not fully portable to Microsoft Fabric without adaptation.
+
+### 4.4.2 Spark Compatibility
+
+| Compatibility Check | Status | Reviewer Comments |
+|---|---|---|
+| `CREATE TABLE IF NOT EXISTS` usage | ✅ | Spark-compatible pattern |
+| `USING DELTA` usage | ✅ | Appropriate for Databricks Spark |
+| Partition syntax | ✅ | Spark-compatible |
+| Numeric and timestamp datatypes | ✅ | Compatible with Spark SQL |
+| Avoidance of unsupported relational constraints | ✅ | Appropriate for Spark |
+| Update/alter statements generally valid | ✅ | Broadly acceptable in Databricks Spark SQL |
+| `VARCHAR(n)` support caveat | ❌ | Spark typically normalizes to `STRING`; bounded `VARCHAR` support can vary by environment/version and should be simplified for portability |
+
+**Reviewer Conclusion:** The DDL is largely Spark/Databricks compatible, with the primary caution being datatype style and some portability assumptions.
+
+### 4.4.3 Used any unsupported features in Microsoft Fabric
+
+| Feature / Pattern | Used | Assessment |
+|---|---|---|
+| `USING DELTA` | Yes | ❌ Databricks-specific implementation detail; not generic Fabric SQL DDL |
+| `OPTIMIZE` | Yes | ❌ Databricks-specific command |
+| `ZORDER BY` | Yes | ❌ Databricks-specific optimization syntax |
+| `PARTITIONED BY` in this exact form | Yes | ❌ Not portable to all Fabric SQL experiences |
+| Delta-specific operational guidance (`VACUUM`) | Yes | ❌ Databricks-specific lifecycle command |
+| PK / FK / CHECK / UNIQUE constraints | No | ✅ No incompatibility introduced here |
+| Identity syntax | No | ✅ Avoided |
+| Traditional index syntax | No | ✅ Avoided |
+
+**Reviewer Conclusion:** Yes, the reviewed output includes implementation patterns that should be treated as unsupported or non-portable for Microsoft Fabric unless the target is specifically Fabric Lakehouse/Spark with adapted syntax and operational patterns.
+
+## 4.5 Identified Issues and Recommendations
+
+| Issue ID | Issue | Impact | Recommendation |
+|---|---|---|---|
+| 1 | Physical model adds ID fields despite logical instruction excluding IDs | Medium | Document this as an approved physical-layer exception or align physical model with logical guidance |
+| 2 | Type 2 dimensions are declared logically but not implemented physically | High | Add `effective_start_date`, `effective_end_date`, `is_current`, and versioning approach |
+| 3 | Databricks-specific syntax limits Microsoft Fabric compatibility | High | Produce a Fabric-adapted DDL variant without `USING DELTA`, `OPTIMIZE`, `ZORDER`, and Spark-style partition clauses where unsupported |
+| 4 | No source-to-target column mapping matrix | Medium | Add detailed lineage table mapping source columns to Gold targets and derived expressions |
+| 5 | `VARCHAR` usage creates Spark portability ambiguity | Medium | Use `STRING` for Spark-first DDL or maintain separate engine-specific DDL variants |
+| 6 | Some partitioning choices may be suboptimal | Medium | Partition only large fact/snapshot tables on date fields; avoid partitioning small dimensions |
+| 7 | Audit count datatypes differ from logical expectation | Low | Standardize operational counts to `BIGINT` |
+| 8 | Update DDL introduces extra columns outside reviewed scope | Low | Add justification and change history for each post-create alteration |
+| 9 | Transformation logic is descriptive but not executable | Medium | Add SQL or PySpark pseudocode for derived measures and business rules |
+| 10 | No explicit knowledge base file was supplied for Fabric unsupported features | Medium | Attach and review the formal Fabric unsupported-features knowledge base in future runs for deterministic compliance validation |
+
+## 4.6 Reviewer Decision Summary
+
+| Review Area | Overall Status |
+|---|---|
+| Alignment with conceptual/logical model | Partially Aligned |
+| Source structure compatibility | Partially Aligned |
+| Best practices adherence | Partially Compliant |
+| Spark compatibility | Mostly Compatible |
+| Microsoft Fabric compatibility | Partially Compatible with Required Changes |
+| Unsupported Microsoft Fabric features present | Yes |
+
+## 5. Audit History
+
+| Version | Change Summary |
+|---|---|
+| 1 | Initial reviewer report generated from provided Gold logical and Gold physical files |
+
+## 6. apiCost
 apiCost: 0.000000
 
 ---
@@ -200,5 +258,5 @@ apiCost: 0.000000
 ## Output URL (Clickable Hyperlinks)
 [Databricks_Gold_Model_Reviewer_1.md](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_Gold_Model_Reviewer/Databricks_Gold_Model_Reviewer_1.md)
 
-outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Gold_Model_Reviewer
-pipelineID : 12373
+outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Aggregated_Gold_Model_Reviewer_DIAS
+pipelineID : 14687
