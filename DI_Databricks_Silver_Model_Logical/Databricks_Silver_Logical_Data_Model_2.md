@@ -1,260 +1,211 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*: 
-## *Description*: Updated Silver layer logical data model for Rental Revenue-to-Cash analytical reporting aligned to Jira AP-1 requirements
+## *Description*: Updated Silver layer logical data model for Rental Revenue-to-Cash reporting aligned to Jira ticket AP-1
 ## *Version*: 2
 ## *Updated on*: 
+## *Changes*: Initial version 2 created by updating v1 baseline with Jira ticket AP-1 business reporting requirements and Silver-layer conformance expectations.
+## *Reason*: Change based on Jira ticket AP-1.
 _____________________________________________
-
-## *Changes*:
-1. Version 2 created from Jira ticket AP-1.
-2. Updated metadata to record the versioned Silver logical data model change history.
-3. Refined the Silver model narrative to explicitly align the model to the AP-1 analytical reporting scope covering executive scorecard, billing performance, AR aging, cash application, and credit risk.
-4. Preserved the existing Silver table structures because the Jira ticket provides business reporting context and constraints rather than a new Bronze structural change.
-5. Reinforced Silver validation and conformance notes using AP-1 requirements for duplicate prevention, reconciliation, deduplication, unapplied cash tracking, aging bucket control, and security-aware reporting context.
-
-## *Reason*:
-1. Change requested from Jira ticket AP-1.
-2. AP-1 defines the reporting requirements and business rules for the Rental Revenue-to-Cash initiative and serves as the required change context for this Silver logical model update.
 
 # 1. Silver Layer Logical Model
 
-## 1.1 Summary
-1. This Silver layer logical model is designed for the Rental Revenue-to-Cash analytical reporting domain.
-2. It is derived from the provided conceptual model, data constraints, Bronze logical model, and Jira business context from AP-1.
-3. The Silver layer mirrors the Bronze table structure while removing primary key, foreign key, unique identifier, and ID fields from the logical output.
-4. It standardizes data types, supports data quality validation, and adds structures for error handling and process audit tracking.
-5. Table names follow the required `Si_` naming convention.
-6. The Silver model supports the AP-1 reporting scope for Revenue-to-Cash Executive Scorecard, Rental Revenue and Billing Performance, AR Aging and Collections, Cash Application and Collector Performance, and Customer Credit Risk reporting.
+## 1.1 Overview
+1. This Silver logical model is derived from the conceptual model, constraints, Bronze logical model, and Jira ticket AP-1.
+2. The Silver layer mirrors the Bronze table structure while removing primary key fields, foreign key fields, unique identifiers, and ID fields from the attribute inventory.
+3. The Silver layer standardizes data types, preserves business attributes, supports data quality handling, and adds process audit tracking required for governed medallion architecture processing.
+4. The Jira ticket AP-1 defines the Rental Revenue-to-Cash business context for revenue, billing, AR aging, cash application, and customer credit risk analytical reporting.
 
-## 1.2 Design Rules Applied
-1. Bronze table structures are mirrored into Silver tables.
-2. Primary key, foreign key, unique identifier, and ID fields are not included in the logical column listings.
-3. Existing Bronze business columns are retained except prohibited key and ID style fields.
-4. Data types are standardized to logical Silver data types such as string, date, timestamp, decimal, integer, and boolean.
-5. Additional Silver tables are included for error data and pipeline process audit data as required.
-6. Jira ticket AP-1 requirements are used exactly as business context for reporting, AR, collections, cash application, and credit risk domains.
-7. The Silver layer is designed to support branch and region drill-down, drill-up, reconciliation, and governed downstream reporting without altering the source-mirrored Bronze business structure.
+## 1.2 Silver Table: Si_Rental_Contracts
+**Description:** Conformed Silver representation of rental contract data standardized from Bronze for downstream reporting on contract activity, rental days, billing context, and branch-level revenue analysis.
 
-## 1.3 Silver Tables
-
-### 1.3.1 Si_Rental_Contracts
-**Description:** Conformed Silver table for rental contract data used for reporting on revenue, billing performance, contract status, and open exposure.
-
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Branch Code | Standardized branch code representing the branch where the rental contract was recorded. | string |
-| Equipment Class | Standardized equipment category associated with the rental contract. | string |
-| Contract Start Date | Standardized contract start date used to indicate when rental coverage begins. | date |
-| Contract End Date | Standardized contract end date used to indicate when rental coverage ends or remains open. | date |
-| Contract Status | Standardized contract lifecycle status such as Open or Closed. | string |
-| Daily Rate | Standardized daily rental charge for the contract. | decimal(18,2) |
-| Source System | Source application from which the contract record was received. | string |
-| File Path | Ingestion lineage path for the source file or batch. | string |
-| File Modification Time | Timestamp when the source file was last modified. | timestamp |
-| Load Timestamp | Timestamp when the record was loaded into the platform. | timestamp |
-| Update Timestamp | Timestamp when the record was last updated in the platform. | timestamp |
+| Branch Code | String | Standardized branch code used to align contract reporting to branch and region rollups. |
+| Equipment Class | String | Standardized equipment category used for rental revenue and mix analysis. |
+| Contract Start Date | Date | Contract start date standardized from Bronze source values. |
+| Contract End Date | Date | Contract end date standardized for duration and open exposure analysis. |
+| Contract Status | String | Standardized contract lifecycle status such as Open or Closed. |
+| Daily Rate | Decimal(18,2) | Daily rental charge associated with the contract. |
+| Source System | String | Source application from which the contract data originated. |
+| File Path | String | Source file lineage path retained for traceability. |
+| File Modification Time | Timestamp | Source file modification timestamp used for ingestion lineage. |
+| Load Timestamp | Timestamp | Timestamp when the record was loaded into the platform. |
+| Update Timestamp | Timestamp | Timestamp when the record was last updated in the platform. |
 
-### 1.3.2 Si_Invoices
-**Description:** Conformed Silver table for invoice and credit memo data used in billing, AR aging, and revenue reporting.
+## 1.3 Silver Table: Si_Invoices
+**Description:** Conformed Silver representation of invoice and credit memo data used for billing, AR aging, and payment application analytics.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Invoice Date | Standardized billing date for the invoice or credit memo transaction. | date |
-| Due Date | Standardized expected payment due date for aging and collections analysis. | date |
-| Invoice Amount | Standardized billed amount for the invoice transaction. | decimal(18,2) |
-| Tax Amount | Standardized tax amount recorded on the invoice. | decimal(18,2) |
-| Invoice Type | Transaction type such as standard invoice or credit memo. | string |
-| Currency | Currency code of the billed transaction. | string |
-| Source System | Source application from which the invoice record was received. | string |
-| File Path | Ingestion lineage path for the source file or batch. | string |
-| File Modification Time | Timestamp when the source file was last modified. | timestamp |
-| Load Timestamp | Timestamp when the record was loaded into the platform. | timestamp |
-| Update Timestamp | Timestamp when the record was last updated in the platform. | timestamp |
+| Invoice Date | Date | Billing date standardized from Bronze source values. |
+| Due Date | Date | Due date used for payment timeliness and aging calculations. |
+| Invoice Amount | Decimal(18,2) | Standardized billed amount for invoice analysis. |
+| Tax Amount | Decimal(18,2) | Tax portion of the invoice transaction. |
+| Invoice Type | String | Standardized transaction category such as standard invoice or credit memo. |
+| Currency | String | Currency code associated with the invoice amount. |
+| Source System | String | Source application from which the invoice data originated. |
+| File Path | String | Source file lineage path retained for audit and traceability. |
+| File Modification Time | Timestamp | Source file modification time captured during ingestion. |
+| Load Timestamp | Timestamp | Timestamp when the record entered the platform. |
+| Update Timestamp | Timestamp | Timestamp when the invoice record was last updated. |
 
-### 1.3.3 Si_Cash_Receipts
-**Description:** Conformed Silver table for payment receipt and cash application data used in collections and unapplied cash monitoring.
+## 1.4 Silver Table: Si_Cash_Receipts
+**Description:** Conformed Silver representation of payment and receipt data standardized for collections, cash application, and unapplied cash reporting.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Receipt Date | Standardized date on which the payment receipt was recorded. | date |
-| Payment Amount | Standardized amount collected in the payment transaction. | decimal(18,2) |
-| Payment Method | Standardized method used to make the payment. | string |
-| Source System | Source application from which the payment record was received. | string |
-| File Path | Ingestion lineage path for the source file or batch. | string |
-| File Modification Time | Timestamp when the source file was last modified. | timestamp |
-| Load Timestamp | Timestamp when the record was loaded into the platform. | timestamp |
-| Update Timestamp | Timestamp when the record was last updated in the platform. | timestamp |
+| Receipt Date | Date | Standardized payment receipt date. |
+| Payment Amount | Decimal(18,2) | Non-negative payment amount recorded for collection analysis. |
+| Payment Method | String | Standardized payment method such as ACH, check, card, or wire. |
+| Source System | String | Originating payment source or lockbox feed. |
+| File Path | String | Source file lineage path retained for auditability. |
+| File Modification Time | Timestamp | Source file modification timestamp used for lineage. |
+| Load Timestamp | Timestamp | Timestamp when the receipt record was loaded. |
+| Update Timestamp | Timestamp | Timestamp when the receipt record was last updated. |
 
-### 1.3.4 Si_Customer_Master
-**Description:** Conformed Silver customer table used for AR, cash application, and credit risk reporting after Silver-level standardization and deduplication preparation.
+## 1.5 Silver Table: Si_Customer_Master
+**Description:** Conformed Silver representation of customer master data used for AR, collections, and credit risk reporting after standardization and deduplication preparation.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Customer Name | Standardized customer business name used for reporting and exposure analysis. | string |
-| Credit Terms | Standardized payment terms assigned to the customer account. | string |
-| Credit Limit | Standardized approved customer credit exposure limit. | decimal(18,2) |
-| Customer Since | Standardized date indicating when the customer relationship began. | date |
-| Customer Status | Standardized account status such as Active or Suspended. | string |
-| Source System | Source application from which the customer record was received. | string |
-| File Path | Ingestion lineage path for the source file or batch. | string |
-| File Modification Time | Timestamp when the source file was last modified. | timestamp |
-| Load Timestamp | Timestamp when the record was loaded into the platform. | timestamp |
-| Update Timestamp | Timestamp when the record was last updated in the platform. | timestamp |
+| Customer Name | String | Standardized customer business name used in reporting views. |
+| Credit Terms | String | Standardized payment terms assigned to the customer. |
+| Credit Limit | Decimal(18,2) | Non-negative approved credit exposure threshold for the customer. |
+| Customer Since | Date | Start date of customer relationship standardized from source. |
+| Customer Status | String | Standardized customer status such as Active or Suspended. |
+| Source System | String | Originating CRM or ERP source of the customer record. |
+| File Path | String | Source file lineage path retained for traceability. |
+| File Modification Time | Timestamp | Source file modification timestamp captured during ingestion. |
+| Load Timestamp | Timestamp | Timestamp when the customer record was loaded. |
+| Update Timestamp | Timestamp | Timestamp when the customer record was last updated. |
 
-### 1.3.5 Si_Branch_Employee
-**Description:** Conformed Silver table for branch employee assignment data used for sales representative and collector reporting.
+## 1.6 Silver Table: Si_Branch_Employee
+**Description:** Conformed Silver representation of employee assignment data supporting sales rep and collector reporting, branch rollups, and workforce-aligned analysis.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Employee Name | Standardized employee name for personnel-level reporting and assignment analysis. | string |
-| Role | Standardized employee role such as Sales Representative or Collector. | string |
-| Branch Code | Standardized branch code for the employee assignment. | string |
-| Region | Standardized region aligned with the employee branch assignment. | string |
-| Collector Assignment | Standardized collector assignment reference used in collections reporting. | string |
-| Effective Date | Standardized effective date for the employee assignment record. | date |
-| Source System | Source application from which the employee record was received. | string |
-| File Path | Ingestion lineage path for the source file or batch. | string |
-| File Modification Time | Timestamp when the source file was last modified. | timestamp |
-| Load Timestamp | Timestamp when the record was loaded into the platform. | timestamp |
-| Update Timestamp | Timestamp when the record was last updated in the platform. | timestamp |
+| Employee Name | String | Standardized employee name used for operational reporting. |
+| Role | String | Workforce role such as Sales Representative or Collector. |
+| Branch Code | String | Standardized branch code assigned to the employee. |
+| Region | String | Standardized region associated with the employee branch assignment. |
+| Collector Assignment | String | Collector assignment attribute used for collection ownership analysis. |
+| Effective Date | Date | Effective date of the employee assignment record. |
+| Source System | String | Source application providing employee assignment data. |
+| File Path | String | Source file lineage path retained for traceability. |
+| File Modification Time | Timestamp | Source file modification timestamp captured for lineage. |
+| Load Timestamp | Timestamp | Timestamp when the employee record was loaded. |
+| Update Timestamp | Timestamp | Timestamp when the employee record was last updated. |
 
-### 1.3.6 Si_Data_Quality_Errors
-**Description:** Silver support table to capture rejected, failed, duplicate, invalid, orphaned, and rule-breaking records identified during Silver data quality and validation processing.
+## 1.7 Silver Table: Si_Error_Data_Quality
+**Description:** Silver error handling structure to store data quality validation failures, conformance issues, and rejected records detected during Silver processing.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Source Table Name | Name of the Silver source table where the validation issue occurred. | string |
-| Error Category | High-level classification of the data quality issue. | string |
-| Error Rule | Specific validation or constraint rule that failed. | string |
-| Error Description | Human-readable explanation of the identified issue. | string |
-| Rejected Record Payload | Record content or serialized payload captured for troubleshooting. | string |
-| Validation Status | Status indicating whether the record failed, was quarantined, or was reprocessed. | string |
-| Detected Timestamp | Timestamp when the issue was detected. | timestamp |
-| Pipeline Run Timestamp | Timestamp of the pipeline execution that identified the issue. | timestamp |
-| Source System | Source application associated with the failed record. | string |
-| File Path | Ingestion lineage path associated with the failed record. | string |
+| Table Name | String | Name of the Silver table where the issue was detected. |
+| Column Name | String | Column associated with the validation or quality failure. |
+| Validation Rule | String | Business rule or constraint evaluated during processing. |
+| Error Message | String | Detailed error message describing the failure. |
+| Error Category | String | Classification of the issue such as completeness, accuracy, format, or referential integrity. |
+| Source System | String | Source system from which the failed data originated. |
+| File Path | String | Lineage reference for the source file associated with the issue. |
+| Detected Timestamp | Timestamp | Timestamp when the issue was detected in processing. |
+| Processing Status | String | Status of the failed record such as quarantined, rejected, or reviewed. |
 
-### 1.3.7 Si_Process_Audit
-**Description:** Silver support table to capture pipeline execution, reconciliation, and processing audit details for Silver transformations.
+## 1.8 Silver Table: Si_Process_Audit
+**Description:** Silver process audit structure to track pipeline execution, transformation status, lineage, and operational metrics for the Silver layer.
 
-| Column Name | Description | Data Type |
+| Column Name | Data Type | Description |
 |---|---|---|
-| Pipeline Name | Name of the Silver pipeline or workflow executed. | string |
-| Source Table Name | Name of the source table processed in the run. | string |
-| Target Table Name | Name of the Silver target table loaded in the run. | string |
-| Processing Status | Final status of the pipeline step such as success, failed, or partial success. | string |
-| Processing Start Timestamp | Timestamp when pipeline execution started. | timestamp |
-| Processing End Timestamp | Timestamp when pipeline execution ended. | timestamp |
-| Processing Duration Seconds | Total processing duration measured in seconds. | decimal(18,2) |
-| Records Read Count | Number of source records read during execution. | integer |
-| Records Written Count | Number of target records written during execution. | integer |
-| Records Rejected Count | Number of records rejected during data quality validation. | integer |
-| Reconciliation Status | Status of count or amount reconciliation for the run. | string |
-| Processed By | Process, job, or service responsible for the execution. | string |
+| Process Name | String | Name of the Silver transformation or pipeline step executed. |
+| Source Table | String | Bronze source table processed by the pipeline step. |
+| Target Table | String | Silver target table produced or updated by the process. |
+| Load Timestamp | Timestamp | Timestamp when the Silver processing step executed. |
+| Processed By | String | Service, job, or user responsible for the pipeline execution. |
+| Processing Time | Decimal(18,2) | Elapsed execution time for the processing step. |
+| Status | String | Processing result such as success, failed, warning, or reprocessed. |
+| Records Read | Integer | Number of input records read by the pipeline. |
+| Records Written | Integer | Number of records successfully written to Silver. |
+| Records Rejected | Integer | Number of records rejected or quarantined during processing. |
 
-# 2. Data Type Standardization
+# 2. Data Type Standardization and Silver Conformance Rules
 
-## 2.1 Standardization Rules
-1. `Text` values from Bronze are standardized to `string` in Silver.
-2. `Date/Text` values from Bronze are standardized to `date` where the business meaning is clearly date-based.
-3. Date-time operational metadata values are standardized to `timestamp`.
-4. Financial and rate-based numeric measures are standardized to `decimal(18,2)`.
-5. Count-based measures in audit structures are standardized to `integer`.
-6. Silver preserves the Bronze business structure but improves consistency for downstream Gold analytics.
+1. `Date/Text` fields from Bronze are standardized to `Date` where business dates are expected.
+2. Monetary and rate-bearing numeric fields are standardized to `Decimal(18,2)`.
+3. Descriptive attributes are standardized to `String`.
+4. Audit and lineage timestamps are standardized to `Timestamp`.
+5. The Silver layer excludes primary key, foreign key, unique identifier, and ID fields from the published logical model.
+6. Standardized business values should align to constraints from the provided files, including:
+   1. Customer Status values such as `Active` and `Suspended`.
+   2. Contract Status values such as `Open` and `Closed`.
+   3. Aging bucket values restricted to `0-30`, `31-60`, `61-90`, and `90+` in downstream conformed analytical use.
+   4. Payment amounts and credit limits must be non-negative.
+   5. Credit memo amounts must remain negative where represented in analytical derivations.
 
-# 3. Data Constraints and Validation Alignment
+# 3. Data Constraints Applied to Silver Layer
 
-## 3.1 Constraints Applied from Inputs
 1. Branch must exist in the organization hierarchy and be active for the selected date.
-2. Health score must remain between 0 and 100.
-3. Duplicate score records must be prevented for unique grain Branch, Date, Period Type.
-4. Invoice amounts must tie to a valid contract after Silver conformance.
-5. Credit memo amounts must be negative and standard invoice amounts must be non-negative.
-6. Duplicate revenue aggregates must be prevented for unique grain Branch, Date, Sales Rep, Equipment Class.
-7. Every outstanding invoice must map to a valid customer.
-8. Aging bucket boundaries are fixed as 0-30, 31-60, 61-90, and 90+ and must not overlap.
-9. Duplicate AR snapshot records must be prevented for unique grain Customer, Invoice, Snapshot Date.
-10. Payment amount must be non-negative.
-11. A payment can apply to zero, one, or more invoices, and partial application must be tracked.
-12. Duplicate payment records must be prevented for unique grain Receipt ID.
-13. Each customer must resolve to a single conformed customer record after deduplication.
-14. Credit limit must be non-negative.
-15. Duplicate customer risk snapshot records must be prevented for unique grain Customer, Snapshot Date.
+2. Invoice amounts must tie to a valid contract after Silver conformance.
+3. Every outstanding invoice must map to a valid customer after conformance.
+4. Duplicate customer records representing the same legal entity must be resolved before customer exposure aggregation.
+5. Net billings must reconcile to gross billings minus credit memos in downstream analytical calculations.
+6. Aging bucket totals must reconcile to Total AR Outstanding in downstream reporting structures.
+7. Applied payment amounts must not exceed the related invoice amount.
+8. Unapplied cash must be retained and reported separately.
+9. Rate-based calculations such as DSO, CEI, AR 90+ %, and Credit Utilization % must only be calculated when the required denominator is non-zero.
+10. Health score must remain within the range of 0 to 100 in downstream scorecard structures derived from Silver.
 
-## 3.2 Silver Validation Use
-1. The Silver layer standardizes source records before Gold-level KPI computation.
-2. Deduplication preparation is required for customer conformance because the inputs explicitly require duplicate customer resolution before exposure aggregation.
-3. Silver must preserve unapplied cash as separately traceable data instead of excluding it.
-4. Silver must support reconciliation of drill-through totals to downstream fact totals.
-5. Silver error handling tables capture violations instead of silently discarding failed records.
-6. Silver validation supports AP-1 reporting expectations for revenue, AR aging, cash application, and credit risk metrics by preserving conformed and controlled input data.
+# 4. Conceptual Data Model Diagram in Tabular Form
 
-# 4. Relationships Between Tables Across Layers
-
-## 4.1 Cross-Layer Relationship Mapping
-| Layer | Source Table | Relationship Key Field | Target Table | Relationship Type | Notes |
-|---|---|---|---|---|---|
-| Conceptual | Region | Region | Branch | One-to-Many | Region rolls up to multiple branches. |
-| Conceptual | Branch | Branch | Contract | One-to-Many | Branch owns multiple rental contracts. |
-| Conceptual | Customer | Customer | Contract | One-to-Many | Customer can hold multiple contracts. |
-| Conceptual | Customer | Customer | Invoice | One-to-Many | Customer can have multiple invoices. |
-| Conceptual | Contract | Contract | Invoice | One-to-Many | Contract can generate multiple invoices. |
-| Conceptual | Invoice | Invoice to Payment Application | Cash Receipt | One-to-Many | Invoice may be linked to multiple receipts. |
-| Bronze to Silver | Bz_Rental_Contracts | Contract reference | Si_Rental_Contracts | One-to-One logical conformance | Same business structure carried into Silver without key fields in output. |
-| Bronze to Silver | Bz_Invoices | Invoice reference | Si_Invoices | One-to-One logical conformance | Same business structure carried into Silver without key fields in output. |
-| Bronze to Silver | Bz_Cash_Receipts | Receipt reference | Si_Cash_Receipts | One-to-One logical conformance | Same business structure carried into Silver without key fields in output. |
-| Bronze to Silver | Bz_Customer_Master | Customer reference | Si_Customer_Master | One-to-One logical conformance | Same business structure carried into Silver with customer standardization. |
-| Bronze to Silver | Bz_Branch_Employee | Employee assignment reference | Si_Branch_Employee | One-to-One logical conformance | Same business structure carried into Silver with role standardization. |
-| Silver Internal | Si_Customer_Master | Customer business reference | Si_Rental_Contracts | One-to-Many | Customer data supports contract-level analysis after conformance. |
-| Silver Internal | Si_Rental_Contracts | Contract business reference | Si_Invoices | One-to-Many | Contract billing relationship remains required for reporting. |
-| Silver Internal | Si_Customer_Master | Customer business reference | Si_Invoices | One-to-Many | Customer supports invoice-level AR reporting. |
-| Silver Internal | Si_Invoices | Invoice business reference | Si_Cash_Receipts | One-to-Many | Payments can be applied to one or more invoices; unapplied receipts remain supported. |
-| Silver Internal | Si_Branch_Employee | Branch Code | Si_Rental_Contracts | One-to-Many | Employee assignment aligns to branch contract activity. |
-| Silver Internal | Si_Branch_Employee | Region | Si_Customer_Master | One-to-Many logical rollup | Regional assignment supports reporting and security rollup. |
-
-# 5. Conceptual Data Model Diagram in Tabular Form
-
-| Source Entity/Table | Connected To | Key Field Mentioned in Input | Relationship Type | Relationship Description |
+| Source Table | Relationship Key Field | Target Table | Relationship Type | Description |
 |---|---|---|---|---|
-| Region | Branch | Region | 1-M | One region is connected to many branches by Region. |
-| Branch | Contract | Branch | 1-M | One branch is connected to many contracts by Branch. |
-| Customer | Contract | Customer | 1-M | One customer is connected to many contracts by Customer. |
-| Customer | Invoice | Customer | 1-M | One customer is connected to many invoices by Customer. |
-| Sales Rep | Branch | Branch | M-1 | Many sales rep assignments connect to one branch by Branch. |
-| Collector | Branch | Branch | M-1 | Many collector assignments connect to one branch by Branch. |
-| Collector | Customer | Collector Assignment | 1-M | One collector is connected to many customers by Collector Assignment. |
-| Contract | Invoice | Contract | 1-M | One contract is connected to many invoices by Contract. |
-| Invoice | Cash Receipt | Invoice to Payment Application | 1-M | One invoice is connected to many cash receipts by Invoice to Payment Application. |
-| Date | Fact Rental Revenue | Date | 1-M | One date is connected to many rental revenue facts by Date. |
-| Date | Fact AR Aging | Date | 1-M | One date is connected to many AR aging facts by Date. |
-| Date | Fact Cash Application | Date | 1-M | One date is connected to many cash application facts by Date. |
-| Date | Fact Credit Risk | Date | 1-M | One date is connected to many credit risk facts by Date. |
-| Customer | Fact AR Aging | Customer | 1-M | One customer is connected to many AR aging facts by Customer. |
-| Customer | Fact Credit Risk | Customer | 1-M | One customer is connected to many credit risk facts by Customer. |
-| Branch | Fact Rental Revenue | Branch | 1-M | One branch is connected to many rental revenue facts by Branch. |
-| Branch | Fact Cash Application | Branch | 1-M | One branch is connected to many cash application facts by Branch. |
-| Contract | Fact Rental Revenue | Contract | 1-M | One contract is connected to many rental revenue facts by Contract. |
-| Invoice | Fact Cash Application | Invoice | 1-M | One invoice is connected to many cash application facts by Invoice. |
-| Organization Hierarchy | Branch | Organization Hierarchy | 1-M | One organization hierarchy is connected to many branches by Organization Hierarchy. |
+| Region | Region | Branch | One-to-Many | One region contains many branches. |
+| Branch | Branch Code | Si_Rental_Contracts | One-to-Many | One branch can have many rental contracts. |
+| Customer | Customer | Si_Rental_Contracts | One-to-Many | One customer can be associated with many contracts. |
+| Si_Rental_Contracts | Contract reference | Si_Invoices | One-to-Many | One contract can produce many invoices. |
+| Customer | Customer | Si_Invoices | One-to-Many | One customer can have many invoices. |
+| Si_Invoices | Invoice reference | Si_Cash_Receipts | One-to-Many | One invoice can be linked to many payment applications or receipts. |
+| Customer | Customer | Si_Cash_Receipts | One-to-Many | One customer can have multiple receipts. |
+| Branch | Branch Code | Si_Branch_Employee | One-to-Many | One branch can have many employee assignment records. |
+| Region | Region | Si_Branch_Employee | One-to-Many | One region can include many employee assignments through branches. |
+| Collector | Collector Assignment | Customer | One-to-Many | One collector can manage many customers. |
+| Date | Date | Revenue reporting views | One-to-Many | Reporting dates connect to revenue analytics. |
+| Date | Snapshot Date | AR aging reporting views | One-to-Many | Snapshot dates connect to AR aging analytics. |
+| Date | Date | Cash application reporting views | One-to-Many | Reporting dates connect to collections analytics. |
+| Date | Snapshot Date | Credit risk reporting views | One-to-Many | Snapshot dates connect to credit risk analytics. |
 
-# 6. Rationale for Key Design Decisions
+# 5. Cross-Layer Relationships
 
-1. The Silver model mirrors the Bronze structure exactly at the table level because the instructions require the Silver structure to follow Bronze while removing key and ID fields.
-2. Data types are standardized in Silver to improve consistency for downstream Gold facts and governed analytics.
-3. Error and audit tables are included because the instructions explicitly require structures for data quality errors, validation exceptions, and process audit data.
-4. Customer conformance is emphasized because the Jira and constraints explicitly require duplicate customer resolution before exposure aggregation.
-5. Unapplied cash is preserved as explicit data because the Jira ticket requires it to be flagged and reported separately.
-6. Contract, invoice, payment, customer, branch, and employee relationships are documented using the business relationship descriptions exactly inferable from the provided inputs.
-7. No new business entities beyond those already supported by the inputs are introduced into the Silver structure except the required error and audit support structures.
-8. AP-1 was applied as the business reason for ensuring the Silver model remains aligned to consolidated analytical reporting across executive scorecard, billing, collections, AR aging, and customer credit risk monitoring.
+1. **Bronze to Silver Table Mapping**
+   1. `Bz_Rental_Contracts` -> `Si_Rental_Contracts`
+   2. `Bz_Invoices` -> `Si_Invoices`
+   3. `Bz_Cash_Receipts` -> `Si_Cash_Receipts`
+   4. `Bz_Customer_Master` -> `Si_Customer_Master`
+   5. `Bz_Branch_Employee` -> `Si_Branch_Employee`
+2. **Business Relationship Notes**
+   1. Contracts provide the operational basis for branch, equipment class, and rental performance reporting.
+   2. Invoices support billing, AR aging, and payment matching analytics.
+   3. Cash receipts support cash application, unapplied cash, and collector performance analytics.
+   4. Customer master data supports conformed customer reporting, customer status analysis, and credit risk monitoring.
+   5. Employee assignment data supports sales rep and collector drill-down reporting.
 
-# 7. Assumptions Made
+# 6. Key Design Decisions and Rationale
 
-1. Source-to-Silver conformance preserves all Bronze business columns because no removal other than keys and ID fields was requested.
-2. Mixed Bronze date fields can be standardized to date where their business meaning is clearly date-based in the inputs.
-3. Relationship key names are documented exactly at the business level because physical key columns are excluded from the logical model output.
-4. The available Bronze logical model is treated as the authoritative Bronze structure for the Silver design in this run.
+1. The Silver layer mirrors the Bronze structure exactly at table level as instructed.
+2. Primary key fields, foreign key fields, unique identifiers, and ID fields are excluded from the Silver logical model output.
+3. Additional Silver tables are included for error handling and process audit support to satisfy data quality and operational governance requirements.
+4. Data types are standardized to improve downstream consistency and reduce schema variability inherited from Bronze.
+5. File lineage, source system, and load/update timestamps are retained to support traceability and auditability.
+6. Customer data is prepared for deduplication because the constraints require a single conformed customer record for exposure reporting.
+7. The model supports downstream Rental Revenue-to-Cash reporting themes explicitly described in Jira ticket AP-1, including revenue, AR aging, collections, cash application, and credit risk domains.
+
+# 7. Assumptions
+
+1. The update request is to create version 2 using the provided AP-1 Jira business requirements as the required change context.
+2. No additional user-provided change text beyond the Jira ticket context was supplied.
+3. Where conceptual relationships reference keys, the relationship key field is documented at business level because ID fields are not included in the logical attribute inventory.
+4. Silver analytical derivations such as health score, DSO, CEI, AR 90+ %, and Credit Utilization % are supported by conformed Silver structures but may be implemented downstream in Gold reporting facts.
 
 # 8. apiCost
+
 apiCost: 0.000000
