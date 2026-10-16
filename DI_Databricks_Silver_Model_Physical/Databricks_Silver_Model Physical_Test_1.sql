@@ -1,56 +1,24 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*: 
-## *Description*: Updated Silver layer physical data model for Rental Revenue-to-Cash analytical reporting aligned to Jira AP-1 requirements; changes sourced from AP-1
+## *Description*: Updated Databricks Silver physical data model for Rental Revenue-to-Cash reporting aligned to Jira AP-1 requirements.
 ## *Version*: 1
 ## *Updated on*: 
 _____________________________________________
 
-## *Changes*:
-1. Version 1 created as a new Silver physical model output in response to user request `yes and v2`.
-2. Applied business reporting requirements, constraints, validations, and relationship context from Jira ticket AP-1.
-3. Derived the Silver physical layer from the provided conceptual model, constraints, Bronze physical model, and Silver logical model.
-4. Included all Bronze-layer columns in the Silver layer and added id fields where required by the physical model instructions.
-5. Added Silver error data and audit tables required for validation, reconciliation, and pipeline observability.
-6. Preserved version history by creating a new output file without overwriting prior versions.
+# Databricks Silver Model Physical
 
-## *Reason*:
-1. Change requested from Jira ticket AP-1.
-2. AP-1 defines reporting requirements for Revenue-to-Cash Executive Scorecard, Rental Revenue and Billing Performance, AR Aging and Collections, Cash Application and Collector Performance, and Customer Credit Risk.
-3. User input requested a versioned update and no prior Silver physical output file was found in the target output directory during this run.
+## Jira Tickets Read
 
-# Silver Layer
-
-## 1. Summary
-This Silver layer physical data model translates the Rental Revenue-to-Cash logical and Bronze inputs into Databricks Delta tables for cleansed, conformed, and analytics-ready processing. It uses the Jira AP-1 business context exactly as provided and supports downstream reporting for revenue, billing, receivables, collections, unapplied cash tracking, and customer credit risk.
-
-## 2. Source Inputs Used
-| Input Type | File / Ticket | Purpose |
+| Ticket Key | Summary | Status |
 |---|---|---|
-| Jira | AP-1 | Reporting requirements, business validations, constraints, and conceptual relationships |
-| Conceptual | `Rental_Revenue_to_Cash_Reports_Conceptual_1.md` | High-level entities, facts, attributes, and relationships |
-| Constraints | `Rental_Revenue_to_Cash_Reports_Constraints_1.md` | Data expectations, business rules, and validation constraints |
-| Bronze Physical | `Databricks_Bronze_Model_Physical_1.md` | Authoritative Bronze physical source table structures and metadata columns |
-| Silver Logical | `Databricks_Silver_Logical_Data_Model_1.md` and context version 4 | Silver conformance intent and reporting alignment |
+| AP-1 | Reporting Requirements for Rental Revenue-to-Cash | To Do |
 
-## 3. Physical Design Rules Applied
-| Rule | Application |
-|---|---|
-| Bronze columns retained | All Bronze business columns are retained in Silver |
-| ID fields added | Physical model includes id fields required for joins and downstream conformance |
-| Spark SQL compatibility | No PK, FK, or unsupported constraints included |
-| Metadata columns | `load_date`, `update_date`, `source_system` included in all Silver tables as required |
-| Delta format | All tables use `USING DELTA` |
-| Partition strategy | Date-based partitions used where beneficial for time-sliced reporting and incremental processing |
-| Index design | Databricks-friendly optimization guidance provided using ZORDER / clustering guidance rather than unsupported traditional indexes |
-| Error handling | Dedicated error table included for Silver and downstream Gold validation traceability |
-| Auditability | Dedicated audit table included for Silver and Gold pipeline execution traceability |
+## Silver Layer
 
-## 4. DDL Scripts
+### DDL Scripts
 
-### 4.1 DDL scripts
-
-#### 4.1.1 `silver.si_rental_contracts`
+#### 1. silver.si_rental_contracts
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_rental_contracts (
   rental_contract_sk BIGINT,
@@ -63,23 +31,17 @@ CREATE TABLE IF NOT EXISTS silver.si_rental_contracts (
   contract_end_date DATE,
   contract_status STRING,
   daily_rate DECIMAL(18,2),
-  file_path STRING,
-  file_modification_time TIMESTAMP,
+  branch_active_flag STRING,
+  contract_duration_days INT,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (contract_start_date);
+PARTITIONED BY (branch_code);
 ```
 
-**Optimization / Index Strategy**
-
-| Table | Suggested Optimize Keys | Notes |
-|---|---|---|
-| `silver.si_rental_contracts` | `contract_id`, `customer_id`, `branch_code`, `sales_rep_id`, `equipment_class` | Use `OPTIMIZE silver.si_rental_contracts ZORDER BY (contract_id, customer_id, branch_code)` for contract and branch reporting access paths |
-
-#### 4.1.2 `silver.si_invoices`
+#### 2. silver.si_invoices
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_invoices (
   invoice_sk BIGINT,
@@ -92,8 +54,12 @@ CREATE TABLE IF NOT EXISTS silver.si_invoices (
   tax_amount DECIMAL(18,2),
   invoice_type STRING,
   currency STRING,
-  file_path STRING,
-  file_modification_time TIMESTAMP,
+  gross_billings DECIMAL(18,2),
+  credit_memo_amount DECIMAL(18,2),
+  net_billings DECIMAL(18,2),
+  invoice_count INT,
+  days_past_due INT,
+  aging_bucket STRING,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
@@ -102,13 +68,7 @@ USING DELTA
 PARTITIONED BY (invoice_date);
 ```
 
-**Optimization / Index Strategy**
-
-| Table | Suggested Optimize Keys | Notes |
-|---|---|---|
-| `silver.si_invoices` | `invoice_id`, `contract_id`, `customer_id`, `due_date`, `invoice_type` | Use `OPTIMIZE silver.si_invoices ZORDER BY (invoice_id, contract_id, customer_id, due_date)` for invoice drill-through and aging access |
-
-#### 4.1.3 `silver.si_cash_receipts`
+#### 3. silver.si_cash_receipts
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_cash_receipts (
   cash_receipt_sk BIGINT,
@@ -118,8 +78,10 @@ CREATE TABLE IF NOT EXISTS silver.si_cash_receipts (
   receipt_date DATE,
   payment_amount DECIMAL(18,2),
   payment_method STRING,
-  file_path STRING,
-  file_modification_time TIMESTAMP,
+  match_status STRING,
+  applied_amount DECIMAL(18,2),
+  unapplied_payment_amount DECIMAL(18,2),
+  days_to_pay INT,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
@@ -128,13 +90,7 @@ USING DELTA
 PARTITIONED BY (receipt_date);
 ```
 
-**Optimization / Index Strategy**
-
-| Table | Suggested Optimize Keys | Notes |
-|---|---|---|
-| `silver.si_cash_receipts` | `receipt_id`, `invoice_id`, `customer_id`, `receipt_date` | Use `OPTIMIZE silver.si_cash_receipts ZORDER BY (receipt_id, invoice_id, customer_id)` for payment application and unapplied cash tracing |
-
-#### 4.1.4 `silver.si_customer_master`
+#### 4. silver.si_customer_master
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_customer_master (
   customer_sk BIGINT,
@@ -144,22 +100,22 @@ CREATE TABLE IF NOT EXISTS silver.si_customer_master (
   credit_limit DECIMAL(18,2),
   customer_since DATE,
   customer_status STRING,
-  file_path STRING,
-  file_modification_time TIMESTAMP,
+  conformed_customer_id STRING,
+  duplicate_customer_flag STRING,
+  open_contract_count INT,
+  open_contract_value DECIMAL(18,2),
+  outstanding_ar DECIMAL(18,2),
+  ar_90_plus_amount DECIMAL(18,2),
+  credit_utilization_pct DECIMAL(18,4),
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
-USING DELTA;
+USING DELTA
+PARTITIONED BY (customer_status);
 ```
 
-**Optimization / Index Strategy**
-
-| Table | Suggested Optimize Keys | Notes |
-|---|---|---|
-| `silver.si_customer_master` | `customer_id`, `customer_name`, `customer_status` | Use `OPTIMIZE silver.si_customer_master ZORDER BY (customer_id, customer_status)` for conformance, AR, and credit risk lookups |
-
-#### 4.1.5 `silver.si_branch_employee`
+#### 5. silver.si_branch_employee
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_branch_employee (
   branch_employee_sk BIGINT,
@@ -170,30 +126,151 @@ CREATE TABLE IF NOT EXISTS silver.si_branch_employee (
   region STRING,
   collector_id STRING,
   effective_date DATE,
-  file_path STRING,
-  file_modification_time TIMESTAMP,
+  sales_rep_name STRING,
+  collector_name STRING,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (effective_date);
+PARTITIONED BY (region);
 ```
 
-**Optimization / Index Strategy**
+#### 6. silver.si_revenue_to_cash_health_score
+```sql
+CREATE TABLE IF NOT EXISTS silver.si_revenue_to_cash_health_score (
+  health_score_sk BIGINT,
+  branch_code STRING,
+  region STRING,
+  reporting_date DATE,
+  period_type STRING,
+  revenue_domain_score DECIMAL(18,4),
+  ar_domain_score DECIMAL(18,4),
+  cash_app_domain_score DECIMAL(18,4),
+  credit_risk_domain_score DECIMAL(18,4),
+  overall_health_score DECIMAL(18,4),
+  top_aging_risk_driver STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (reporting_date, period_type);
+```
 
-| Table | Suggested Optimize Keys | Notes |
-|---|---|---|
-| `silver.si_branch_employee` | `employee_id`, `branch_code`, `region`, `collector_id`, `role` | Use `OPTIMIZE silver.si_branch_employee ZORDER BY (employee_id, branch_code, region, collector_id)` for personnel drill-down and security rollup alignment |
+#### 7. silver.si_fact_rental_revenue
+```sql
+CREATE TABLE IF NOT EXISTS silver.si_fact_rental_revenue (
+  rental_revenue_fact_sk BIGINT,
+  branch_code STRING,
+  region STRING,
+  contract_id STRING,
+  customer_id STRING,
+  sales_rep_id STRING,
+  equipment_class STRING,
+  reporting_date DATE,
+  period_type STRING,
+  rental_revenue DECIMAL(18,2),
+  gross_billings DECIMAL(18,2),
+  credit_memo_amount DECIMAL(18,2),
+  net_billings DECIMAL(18,2),
+  average_daily_rate DECIMAL(18,4),
+  revenue_per_contract DECIMAL(18,4),
+  credit_memo_rate DECIMAL(18,4),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (reporting_date, branch_code);
+```
 
-### 4.2 Error Data Table DDL script
+#### 8. silver.si_fact_ar_aging
+```sql
+CREATE TABLE IF NOT EXISTS silver.si_fact_ar_aging (
+  ar_aging_fact_sk BIGINT,
+  branch_code STRING,
+  region STRING,
+  customer_id STRING,
+  collector_id STRING,
+  sales_rep_id STRING,
+  invoice_id STRING,
+  snapshot_date DATE,
+  total_ar_outstanding DECIMAL(18,2),
+  aging_bucket STRING,
+  aging_bucket_amount DECIMAL(18,2),
+  ar_90_plus_amount DECIMAL(18,2),
+  ar_90_plus_pct DECIMAL(18,4),
+  dso DECIMAL(18,4),
+  best_possible_dso DECIMAL(18,4),
+  dso_trend DECIMAL(18,4),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (snapshot_date, branch_code);
+```
 
-#### 4.2.1 `silver.si_error_data`
+#### 9. silver.si_fact_cash_application
+```sql
+CREATE TABLE IF NOT EXISTS silver.si_fact_cash_application (
+  cash_application_fact_sk BIGINT,
+  branch_code STRING,
+  region STRING,
+  collector_id STRING,
+  customer_id STRING,
+  invoice_id STRING,
+  receipt_id STRING,
+  reporting_date DATE,
+  cash_collected DECIMAL(18,2),
+  collection_effectiveness_index DECIMAL(18,4),
+  average_days_to_pay DECIMAL(18,4),
+  invoices_paid_on_time_pct DECIMAL(18,4),
+  unapplied_cash_amount DECIMAL(18,2),
+  unapplied_cash_pct DECIMAL(18,4),
+  payment_method STRING,
+  match_status STRING,
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (reporting_date, branch_code);
+```
+
+#### 10. silver.si_fact_credit_risk
+```sql
+CREATE TABLE IF NOT EXISTS silver.si_fact_credit_risk (
+  credit_risk_fact_sk BIGINT,
+  branch_code STRING,
+  region STRING,
+  customer_id STRING,
+  snapshot_date DATE,
+  customer_status STRING,
+  credit_limit DECIMAL(18,2),
+  outstanding_ar DECIMAL(18,2),
+  credit_utilization_pct DECIMAL(18,4),
+  customers_over_limit_count INT,
+  customers_over_limit_amount DECIMAL(18,2),
+  suspended_customers_with_open_exposure INT,
+  ar_90_plus_amount_by_customer DECIMAL(18,2),
+  open_contract_count INT,
+  open_contract_value DECIMAL(18,2),
+  load_date TIMESTAMP,
+  update_date TIMESTAMP,
+  source_system STRING
+)
+USING DELTA
+PARTITIONED BY (snapshot_date, branch_code);
+```
+
+### Error Data Table DDL Script
+
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_error_data (
-  error_record_sk BIGINT,
-  error_id STRING,
-  pipeline_layer STRING,
+  error_data_sk BIGINT,
+  layer_name STRING,
   source_table_name STRING,
   target_table_name STRING,
   business_key STRING,
@@ -204,213 +281,141 @@ CREATE TABLE IF NOT EXISTS silver.si_error_data (
   validation_status STRING,
   detected_timestamp TIMESTAMP,
   pipeline_run_id STRING,
-  pipeline_run_timestamp TIMESTAMP,
-  file_path STRING,
+  source_system STRING,
   load_date TIMESTAMP,
-  update_date TIMESTAMP,
-  source_system STRING
+  update_date TIMESTAMP
 )
 USING DELTA
-PARTITIONED BY (pipeline_layer);
+PARTITIONED BY (layer_name, source_table_name);
 ```
 
-**Purpose**
+### Audit Table DDL Script
 
-| Table | Purpose |
-|---|---|
-| `silver.si_error_data` | Stores Silver and Gold validation failures including duplicates, non-negative rule failures, invalid mappings, unapplied trace exceptions, reconciliation issues, and data conformance errors |
-
-### 4.3 Audit Table DDL script
-
-#### 4.3.1 `silver.si_pipeline_audit`
 ```sql
 CREATE TABLE IF NOT EXISTS silver.si_pipeline_audit (
-  audit_sk BIGINT,
+  pipeline_audit_sk BIGINT,
   pipeline_run_id STRING,
   pipeline_name STRING,
-  pipeline_layer STRING,
+  layer_name STRING,
   source_table_name STRING,
   target_table_name STRING,
+  processing_start_time TIMESTAMP,
+  processing_end_time TIMESTAMP,
   processing_status STRING,
-  reconciliation_status STRING,
-  processing_start_timestamp TIMESTAMP,
-  processing_end_timestamp TIMESTAMP,
-  processing_duration_seconds DECIMAL(18,2),
+  error_message STRING,
   records_read_count BIGINT,
   records_written_count BIGINT,
   records_rejected_count BIGINT,
-  error_message STRING,
+  reconciliation_status STRING,
   processed_by STRING,
   load_date TIMESTAMP,
   update_date TIMESTAMP,
   source_system STRING
 )
 USING DELTA
-PARTITIONED BY (pipeline_layer);
+PARTITIONED BY (layer_name, processing_status);
 ```
 
-**Purpose**
-
-| Table | Purpose |
-|---|---|
-| `silver.si_pipeline_audit` | Stores Silver and Gold pipeline execution audit details including run timings, status, reconciliation, and error message capture |
-
-### 4.4 Update DDL script
+### Update DDL Script
 
 ```sql
--- Example Silver update and merge pattern aligned to AP-1 governed conformance requirements.
-MERGE INTO silver.si_customer_master AS tgt
-USING (
-  SELECT
-    CAST(NULL AS BIGINT) AS customer_sk,
-    customer_id,
-    customer_name,
-    credit_terms,
-    credit_limit,
-    TO_DATE(customer_since) AS customer_since,
-    customer_status,
-    file_path,
-    file_modification_time,
-    CURRENT_TIMESTAMP() AS load_date,
-    CURRENT_TIMESTAMP() AS update_date,
-    source_system
-  FROM bronze.bz_customer_master
-) AS src
-ON tgt.customer_id = src.customer_id
-WHEN MATCHED THEN UPDATE SET
-  tgt.customer_name = src.customer_name,
-  tgt.credit_terms = src.credit_terms,
-  tgt.credit_limit = src.credit_limit,
-  tgt.customer_since = src.customer_since,
-  tgt.customer_status = src.customer_status,
-  tgt.file_path = src.file_path,
-  tgt.file_modification_time = src.file_modification_time,
-  tgt.update_date = src.update_date,
-  tgt.source_system = src.source_system
-WHEN NOT MATCHED THEN INSERT (
-  customer_sk,
-  customer_id,
-  customer_name,
-  credit_terms,
-  credit_limit,
-  customer_since,
-  customer_status,
-  file_path,
-  file_modification_time,
-  load_date,
-  update_date,
-  source_system
-) VALUES (
-  src.customer_sk,
-  src.customer_id,
-  src.customer_name,
-  src.credit_terms,
-  src.credit_limit,
-  src.customer_since,
-  src.customer_status,
-  src.file_path,
-  src.file_modification_time,
-  src.load_date,
-  src.update_date,
-  src.source_system
+-- Description includes Jira source: AP-1
+ALTER TABLE silver.si_invoices ADD COLUMNS (
+  gross_billings DECIMAL(18,2),
+  credit_memo_amount DECIMAL(18,2),
+  net_billings DECIMAL(18,2),
+  invoice_count INT,
+  days_past_due INT,
+  aging_bucket STRING
+);
+
+ALTER TABLE silver.si_cash_receipts ADD COLUMNS (
+  match_status STRING,
+  applied_amount DECIMAL(18,2),
+  unapplied_payment_amount DECIMAL(18,2),
+  days_to_pay INT
+);
+
+ALTER TABLE silver.si_customer_master ADD COLUMNS (
+  conformed_customer_id STRING,
+  duplicate_customer_flag STRING,
+  open_contract_count INT,
+  open_contract_value DECIMAL(18,2),
+  outstanding_ar DECIMAL(18,2),
+  ar_90_plus_amount DECIMAL(18,2),
+  credit_utilization_pct DECIMAL(18,4)
 );
 ```
 
-## 5. Transformation, Validation, Join, and Filter Design
+## Index and Performance Strategy
 
-### 5.1 Intermediate Transformations
-| Area | Transformation |
+| Table | Optimization Strategy |
 |---|---|
-| Date standardization | Convert Bronze string dates to `DATE` in Silver where business meaning is clearly date-based |
-| Numeric standardization | Promote monetary values to `DECIMAL(18,2)` for reporting consistency |
-| Conformance | Standardize customer, contract, invoice, receipt, employee, branch, and region usage for downstream governed reporting |
-| Lineage preservation | Retain `file_path`, `file_modification_time`, and `source_system` |
-| Audit enrichment | Add `load_date` and `update_date` in all Silver tables |
+| silver.si_rental_contracts | OPTIMIZE with ZORDER BY (contract_id, customer_id, branch_code) |
+| silver.si_invoices | OPTIMIZE with ZORDER BY (invoice_id, contract_id, customer_id, due_date) |
+| silver.si_cash_receipts | OPTIMIZE with ZORDER BY (receipt_id, invoice_id, customer_id) |
+| silver.si_customer_master | OPTIMIZE with ZORDER BY (customer_id, conformed_customer_id, customer_status) |
+| silver.si_branch_employee | OPTIMIZE with ZORDER BY (employee_id, branch_code, region) |
+| silver.si_fact_rental_revenue | OPTIMIZE with ZORDER BY (reporting_date, branch_code, contract_id) |
+| silver.si_fact_ar_aging | OPTIMIZE with ZORDER BY (snapshot_date, customer_id, invoice_id) |
+| silver.si_fact_cash_application | OPTIMIZE with ZORDER BY (reporting_date, collector_id, receipt_id) |
+| silver.si_fact_credit_risk | OPTIMIZE with ZORDER BY (snapshot_date, customer_id, branch_code) |
+| silver.si_error_data | OPTIMIZE with ZORDER BY (layer_name, source_table_name, detected_timestamp) |
+| silver.si_pipeline_audit | OPTIMIZE with ZORDER BY (pipeline_run_id, layer_name, processing_status) |
 
-### 5.2 Required Business Validations from AP-1 and Constraints
-| Validation Area | Rule |
+## Data Retention Policies
+
+### Retention periods for the Silver layer
+
+| Table Group | Retention Period |
 |---|---|
-| Branch validity | Branch must exist in organization hierarchy and be active for the selected date |
-| Invoice to contract | Invoice amounts must tie to a valid `contract_id` after Silver conformance |
-| Credit memo sign | Credit memo amounts must be negative; standard invoice amounts non-negative |
-| Customer conformance | Every outstanding invoice must map to a valid customer; duplicate customer records must be resolved before exposure aggregation |
-| Aging bucket support | Aging bucket boundaries are fixed as 0-30, 31-60, 61-90, and 90+ and must not overlap |
-| Payment validity | Payment amount must be non-negative |
-| Payment application | A payment can apply to zero, one, or more invoices; partial application must be tracked |
-| Unapplied cash | Unapplied cash must be flagged and reported separately rather than silently excluded |
-| Reconciliation | Drill-through totals must reconcile to downstream source fact totals where required |
+| Core conformed Silver tables | 7 years |
+| Error data table | 2 years |
+| Audit table | 3 years |
+| Weekly and daily health score snapshots | 3 years |
 
-### 5.3 Join Design
-| Left Table | Right Table | Join Key | Purpose |
+### Archiving strategies
+
+| Data Area | Strategy |
+|---|---|
+| Historical Silver records | Archive closed historical partitions to lower-cost Delta storage annually |
+| Error records | Archive resolved error records after 24 months to cold storage |
+| Audit logs | Archive completed pipeline audit records after 36 months |
+| Snapshot fact data | Compact and archive aged partitions while preserving Delta history policy per platform standard |
+
+## Assumptions and Design Decisions
+
+1. Bronze physical tables and all Bronze columns were carried into Silver physical structures with additional surrogate id fields as required.
+2. No PK, FK, or unsupported Spark SQL constraints were included.
+3. Additional Silver analytical structures were added because Jira AP-1 explicitly defines health score, AR aging, cash application, rental revenue, and credit risk reporting requirements.
+4. Error and audit tables were included to support both Silver and Gold validation and execution logging requirements.
+5. Databricks Spark SQL limitations were respected by excluding enforced relational constraints and traditional RDBMS indexes.
+6. Partitioning was selected by high-volume reporting and snapshot dates aligned to the business domain.
+7. Description metadata is updated based on Jira ticket AP-1.
+
+## Conceptual Data Model Diagram in tabular form showing relationships
+
+| Source Table | Key Field | Target Table | Relationship Description |
 |---|---|---|---|
-| `silver.si_rental_contracts` | `silver.si_customer_master` | `customer_id` | Contract-customer reporting conformance |
-| `silver.si_rental_contracts` | `silver.si_branch_employee` | `sales_rep_id` = `employee_id` | Sales rep alignment for revenue reporting |
-| `silver.si_invoices` | `silver.si_rental_contracts` | `contract_id` | Billing to contract linkage |
-| `silver.si_invoices` | `silver.si_customer_master` | `customer_id` | AR aging and customer exposure linkage |
-| `silver.si_cash_receipts` | `silver.si_invoices` | `invoice_id` | Payment application to invoice linkage |
-| `silver.si_cash_receipts` | `silver.si_customer_master` | `customer_id` | Customer cash collection reporting |
-| `silver.si_branch_employee` | `silver.si_customer_master` | business assignment / regional rollup context | Collector and branch-region reporting alignment |
+| silver.si_branch_employee | region | silver.si_rental_contracts | Region supports branch-level rental contract reporting rollups |
+| silver.si_rental_contracts | branch_code | silver.si_fact_rental_revenue | Branch-level contract activity feeds rental revenue facts |
+| silver.si_customer_master | customer_id | silver.si_rental_contracts | Customer connects to contract by customer_id |
+| silver.si_rental_contracts | contract_id | silver.si_invoices | Contract connects to invoice by contract_id |
+| silver.si_customer_master | customer_id | silver.si_invoices | Customer connects to invoice by customer_id |
+| silver.si_invoices | invoice_id | silver.si_cash_receipts | Invoice connects to receipts by invoice_id |
+| silver.si_customer_master | customer_id | silver.si_cash_receipts | Customer connects to cash receipts by customer_id |
+| silver.si_branch_employee | collector_id | silver.si_fact_ar_aging | Collector assignment connects to AR aging by collector_id |
+| silver.si_branch_employee | collector_id | silver.si_fact_cash_application | Collector assignment connects to cash application by collector_id |
+| silver.si_customer_master | customer_id | silver.si_fact_ar_aging | Customer connects to AR aging by customer_id |
+| silver.si_customer_master | customer_id | silver.si_fact_credit_risk | Customer connects to credit risk by customer_id |
+| silver.si_invoices | invoice_id | silver.si_fact_ar_aging | Invoice connects to AR aging by invoice_id |
+| silver.si_cash_receipts | receipt_id | silver.si_fact_cash_application | Receipt connects to cash application by receipt_id |
+| silver.si_rental_contracts | contract_id | silver.si_fact_rental_revenue | Contract connects to rental revenue by contract_id |
 
-### 5.4 Filters and Exclusions
-| Rule | Handling |
-|---|---|
-| Duplicate records | Sent to `silver.si_error_data` or quarantined per processing logic |
-| Invalid contract or customer mappings | Captured in `silver.si_error_data` |
-| Unapplied cash | Retained as valid analytical condition, not filtered out |
-| Zero/invalid denominators in downstream rates | Flagged through audit/error processing rather than enforced via table constraints |
-
-## 6. Data Retention Policies
-
-### 6.1 Retention periods for the Silver layer
-| Table Category | Retention Period | Rationale |
-|---|---|---|
-| Core Silver conformed tables | 7 years | Supports trend reporting, reconciliation, and historical analytical restatement needs |
-| Silver error data | 2 years | Supports remediation, auditability, and defect investigation |
-| Silver pipeline audit | 2 years | Supports observability, SLA review, and operational audit history |
-
-### 6.2 Archiving strategies
-| Data Set | Strategy |
-|---|---|
-| Historical Silver partitions | Archive cold partitions to lower-cost Delta storage tier while preserving queryability through governed access patterns |
-| Error data | Archive resolved historical error records by year and pipeline layer |
-| Audit data | Archive old audit partitions by pipeline layer and year for compliance and support review |
-
-## 7. Conceptual Data Model Diagram in tabular form showing relationships
-| Source Entity/Table | Connected To | Key Field | Relationship Type | Relationship Description |
-|---|---|---|---|---|
-| `silver.si_customer_master` | `silver.si_rental_contracts` | `customer_id` | 1-M | One customer can hold multiple contracts |
-| `silver.si_branch_employee` | `silver.si_rental_contracts` | `employee_id` = `sales_rep_id` | 1-M | One sales representative can align to multiple contracts |
-| `silver.si_rental_contracts` | `silver.si_invoices` | `contract_id` | 1-M | One contract can generate multiple invoices |
-| `silver.si_customer_master` | `silver.si_invoices` | `customer_id` | 1-M | One customer can have multiple invoices |
-| `silver.si_invoices` | `silver.si_cash_receipts` | `invoice_id` | 1-M | One invoice can be paid by multiple receipts and a receipt may remain unapplied |
-| `silver.si_customer_master` | `silver.si_cash_receipts` | `customer_id` | 1-M | One customer can have multiple cash receipts |
-| `silver.si_branch_employee` | `silver.si_customer_master` | `region` / collector assignment context | 1-M logical rollup | Branch and region assignment supports collections, security, and reporting rollup |
-
-## 8. Assumptions and Design Decisions
-| Category | Detail |
-|---|---|
-| Bronze authority | The Bronze physical model is treated as the authoritative structural input for required source columns |
-| ID fields | Surrogate keys were added as physical id fields because the instructions explicitly require id fields in the Silver physical model |
-| Metadata columns | `load_date`, `update_date`, and `source_system` were included in every Silver table as required |
-| Spark SQL limitation handling | Traditional PK/FK/check constraints and conventional RDBMS indexes are not included because they are not part of the required Databricks Spark SQL physical output |
-| Index design | Performance guidance is expressed using Databricks optimization patterns such as `OPTIMIZE` and `ZORDER BY` |
-| Versioning | No overwrite performed; new output file created |
-
-## 9. Databricks Spark SQL Limitations Excluded from Final Design
-| Unsupported / Not Preferred for this design | Handling |
-|---|---|
-| Primary keys | Excluded |
-| Foreign keys | Excluded |
-| Traditional enforced check constraints for all business rules | Implemented as validation logic / error handling instead |
-| Traditional RDBMS indexes | Replaced by Delta optimization guidance |
-
-## 10. Jira Tickets Read
-| Ticket Key | Summary | Status |
-|---|---|---|
-| AP-1 | Reporting Requirements for Rental Revenue-to-Cash | To Do |
-
-## 11. apiCost
+## apiCost
 apiCost: 0.000000
+
+---
 
 ## Output URL (Clickable Hyperlinks)
 [Databricks_Silver_Model Physical_Test_1.sql](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_Silver_Model_Physical/Databricks_Silver_Model%20Physical_Test_1.sql)
