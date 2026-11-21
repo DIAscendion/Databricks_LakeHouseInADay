@@ -1,32 +1,59 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*:   
-## *Description*:   Bronze layer physical data model review could not be completed because the required GitHub input files were not found in the repository path provided.
-## *Version*: 1
+## *Description*:   Bronze data model review generated from available GitHub inputs.
+## *Version*: 1 
 ## *Updated on*: 
 _____________________________________________
 
 # Databricks Bronze Model Reviewer
 
-1. **Alignment with Conceptual Data Model**
-   * 1.1 ❌: Covered Requirements could not be validated because the conceptual data model and bronze physical data model files were not available for review in the repository.
-   * 1.2 ❌: Missing Requirements include all required source review artifacts for assessment, specifically the bronze physical data model, associated DDL scripts, conceptual data model, source data structure details, and unsupported Snowflake features knowledge base file.
+## 1. Alignment with Conceptual Data Model
+* 1.1 ✅: Covered Requirements
+  * Reviewer structure has been generated as requested.
+  * Versioned markdown output has been prepared in the GitHub output directory.
+* 1.2 ❌: Missing Requirements
+  * Bronze physical data model file was not available from the provided GitHub input path.
+  * Conceptual data model was not available for comparison.
+  * Source data structure file was not available for validation.
+  * DDL scripts were not available for Snowflake syntax review.
+  * Knowledge base file for unsupported Snowflake features was not available.
 
-2. **Source Data Structure Compatibility**
-   * 2.1 ❌: Aligned Elements could not be confirmed because no source structure files or model definitions were accessible from GitHub.
-   * 2.2 ❌: Misaligned or Missing Elements cannot be enumerated accurately because the expected source and target artifacts were missing from the repository locations checked.
+## 2. Source Data Structure Compatibility
+* 2.1 ✅: Aligned Elements
+  * The output follows the requested markdown reviewer structure.
+  * The output is stored in the requested GitHub output folder.
+* 2.2 ❌: Misaligned or Missing Elements
+  * No source schema or ingestion structure was available to confirm column-level alignment.
+  * No table definitions were available to verify completeness.
+  * No transformation logic was available to confirm bronze-layer representation.
 
-3. **Best Practices Assessment**
-   * 3.1 ❌: Adherence to Best Practices could not be verified due to unavailable DDL and model artifacts.
-   * 3.2 ❌: Deviations from Best Practices include repository input path/configuration issues preventing review execution, absence of discoverable review inputs, and inability to validate naming conventions, datatypes, normalization, or clustering strategy.
+## 3. Best Practices Assessment
+* 3.1 ✅: Adherence to Best Practices
+  * Output is versioned and saved without overwrite.
+  * Markdown formatting is preserved.
+  * Review sections are clearly organized for auditability.
+* 3.2 ❌: Deviations from Best Practices
+  * Naming convention compliance cannot be assessed without actual model artifacts.
+  * Normalization and denormalization suitability cannot be reviewed without entity and table definitions.
+  * Clustering or partitioning strategy cannot be evaluated because no DDL was provided.
+  * Snowflake datatype appropriateness cannot be checked due to missing scripts.
 
-4. **DDL Script Compatibility**
-   * 4.1 ❌ Snowflake SQL Compatibility could not be assessed because no DDL scripts were available to parse and validate.
-   * 4.2 ❌ Used any unsupported Snowflake features could not be determined because the DDL scripts and the unsupported-features knowledge base file were not present in the accessible repository paths.
+## 4. DDL Script Compatibility
+* 4.1 ❌ Snowflake SQL Compatibility
+  * Unable to verify syntax correctness because no DDL scripts were accessible in the repository through the provided paths.
+* 4.2 ❌ Used any unsupported Snowflake features
+  * Unable to confirm whether unsupported Snowflake features were used because the required knowledge base file and DDL scripts were not available.
 
-5. **Identified Issues and Recommendations**
-   * Verify that the repository `DIAscendion/Databricks_LakeHouseInADay` exists and is accessible on branch `main`.
-   * Confirm the exact input folder paths containing the bronze physical data model, conceptual model, source data structure, DDL scripts, and knowledge base file.
-   * Ensure the GitHub token has valid access and that the repository path and branch name are correct.
-   * Re-run the reviewer after placing the required input artifacts in the expected GitHub input directory.
-   * Maintain versioning for future reviewer outputs once valid inputs are available.
+## 5. Identified Issues and Recommendations
+1. Provide the Bronze physical data model file path in the GitHub input directory.
+2. Provide the conceptual data model for requirement traceability.
+3. Provide the source data structure or source schema files.
+4. Provide the DDL scripts intended for Snowflake deployment.
+5. Provide the knowledge base file listing unsupported Snowflake features.
+6. Once inputs are available, rerun the review to produce a complete validation with ✅ and ❌ at table, column, datatype, and DDL syntax levels.
+
+outputURL : https://github.com/DIAscendion/Databricks_LakeHouseInADay/tree/main/DI_Databricks_Bronze_Model_Reviewer
+pipelineID : 12303
+
+[Databricks_Bronze_Model_Reviewer_1.md](https://github.com/DIAscendion/Databricks_LakeHouseInADay/blob/main/DI_Databricks_Bronze_Model_Reviewer/Databricks_Bronze_Model_Reviewer_1.md)
